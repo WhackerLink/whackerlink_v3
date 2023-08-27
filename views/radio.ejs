@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>whackerlink 3.0</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.1.2/socket.io.js" integrity="sha512-iZIBSs+gDyTH0ZhUem9eQ1t4DcEn2B9lHxfRMeGQhyNdSUz+rb+5A3ummX6DQTOIs1XK0gOteOg/LPtSo9VJ+w==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+</head>
+<header>
+    <div class="controller">
+        <!--
+        <button class="control-btn disable-btn" onclick="toggleMute(this)">Mute</button>
+        -->
+    </div>
+
+</header>
+<body>
+
+
+
+</ul>
+
+<script>
+    //toggleConnection(this)
+    //toggleMute(this)
+    //toggleMicrophone(this)
+    const userStatus = {
+        microphone: false,
+        mute: false,
+        username: "<%=rid%>",
+        online: false,
+        channel: "<%=selected_channel%>"
+    };
+    let voice_channel_granted = false;
+    let denied = false;
+    let reg_deny = false;
+
+
+    //window.onload = (e) => {
+    function radioPowerOn()
+    {
+        audioCtx = new(window.AudioContext || window.webkitAudioContext)();
+
+        socket.emit("REG_REQUEST", "<%=rid%>");
+        socket.once("REG_GRANTED", function (data){
+            if (data === "<%=rid%>"){
+                updateTextContent("1", "Zone A");
+                updateTextContent("2", `${userStatus.channel}`)
+                mainFunction(1000);
+                reg_deny = false;
+            }
+        });
+        socket.once("REG_DENIED" ,function (data){
+            if (data === "<%=rid%>"){
+                updateTextContent("1", "Zone A");
+                updateTextContent("2", `${userStatus.channel}`)
+                setTimeout(function (){
+                    updateTextContent("3", "REG DENIED");
+                    reg_deny = true
+                    setInterval(function (){
+                        bonk();
+                    }, 7500)
+                }, 2500);
+            }
+        });
+        // };
+    }
+
+    var socket = io();
+    socket.emit("userInformation", userStatus);
+
+    function beep(frequency, duration, volume, type) {
+        var oscillator = audioCtx.createOscillator();
+        var gainNode = audioCtx.createGain();
+
+        oscillator.connect(gainNode);
+        gainNode.connect(audioCtx.destination);
+        vol = 1;
+        gainNode.gain.value = vol;
+        oscillator.frequency.value = frequency;
+        oscillator.type = type;
+
+        oscillator.start();
+
+        setTimeout(
+            function () {
+                oscillator.stop();
+            },
+            duration
+        );
+    }
+    function tpt_generate(){
+        beep(910, 30, 20, 'sine');
+        setTimeout(function () {
+            beep(0, 20, 20, 'sine');
+        }, 30);
+        setTimeout(function () {
+            beep(910, 30, 20, 'sine');
+        }, 50);
+        setTimeout(function () {
+            beep(0, 20, 20, 'sine');
+        }, 80);
+        setTimeout(function () {
+            beep(910, 50, 20, 'sine');
+        }, 100);
+    }
+    function emergency_tone_generate(){
+        beep(610, 500, 20, 'sine');
+        setTimeout(function () {
+            beep(910, 500, 20, 'sine');
+        }, 500);
+        setTimeout(function () {
+            beep(610, 500, 20, 'sine');
+        }, 1000);
+        setTimeout(function () {
+            beep(910, 500, 20, 'sine');
+        }, 1500);
+    }
+    function bonk(){
+        beep(310, 1000, 5, 'sine');
+    }
+    window.addEventListener("beforeunload", function (e) {
+        socket.emit("REMOVE_AFFILIATION", {"rid": "<%=rid%>", "channel": "<%=selected_channel%>"})
+        e.returnValue = "Are you sure you want to leave the page?";
+    }, false);
+
+    function mainFunction(time) {
+        socket.emit('CHANNEL_AFFILIATION_REQUEST', {"rid": "<%=rid%>", "channel": "<%=selected_channel%>"})
+
+
+        toggleConnection(this)
+
+        navigator.mediaDevices.getUserMedia({ audio: true }).then((stream) => {
+            var madiaRecorder = new MediaRecorder(stream);
+            madiaRecorder.start();
+
+            var audioChunks = [];
+
+            madiaRecorder.addEventListener("dataavailable", function (event) {
+                audioChunks.push(event.data);
+            });
+
+            madiaRecorder.addEventListener("stop", function () {
+                var audioBlob = new Blob(audioChunks);
+
+                audioChunks = [];
+
+                var fileReader = new FileReader();
+                fileReader.readAsDataURL(audioBlob);
+                fileReader.onloadend = function () {
+                        if (!userStatus.microphone || !userStatus.online || !voice_channel_granted) return;
+                        var base64String = fileReader.result;
+                        socket.emit("voice", base64String);
+                };
+
+                madiaRecorder.start();
+
+
+                setTimeout(function () {
+                    madiaRecorder.stop();
+                }, time);
+            });
+
+            setTimeout(function () {
+                madiaRecorder.stop();
+            }, time);
+        });
+
+
+        socket.on("send", function (data) {
+            var audio = new Audio(data);
+            audio.play();
+        });
+        socket.on("VOICE_CHANNEL_GRANT", function (data) {
+            console.log("<%=selected_channel%>")
+            if (data.rid === "<%=rid%>" && data.channel === "<%=selected_channel%>") {
+                tpt_generate();
+                userStatus.microphone = !userStatus.microphone;
+                emitUserInformation();
+                voice_channel_granted = true;
+                denied = false;
+            } else if(data.channel === "<%=selected_channel%>") {
+                updateTextContent("3", `ID: ${data.rid}`)
+            }
+        });
+        socket.on("VOICE_CHANNEL_RELEASE", function (data){
+            if (data.rid === "<%=rid%>" && data.channel === "<%=selected_channel%>") {
+                voice_channel_granted = false;
+                userStatus.microphone = !userStatus.microphone;
+                emitUserInformation();
+                denied = false;
+            } else if(data.channel === "<%=selected_channel%>"){
+                setTimeout(function (){
+                    updateTextContent("3", '')
+                }, 1500)
+            }
+        });
+        socket.on("VOICE_CHANNEL_DENY", function (data){
+            denied = true
+            if (data.rid === "<%=rid%>" && data.channel === "<%=selected_channel%>")
+            bonk();
+        });
+        socket.on("EMERGENCY_CALL", function (data){
+             if (data.channel === "<%=selected_channel%>"){
+                 emergency_tone_generate();
+                 updateTextContent("3", `EMERGENCY:<br />${data.rid}`)
+                 setTimeout(function (){
+                     updateTextContent("3", '')
+                 }, 3500)
+             }
+        });
+    }
+
+    function toggleConnection(e) {
+        userStatus.online = !userStatus.online;
+        emitUserInformation();
+    }
+
+    function toggleMute(e) {
+        userStatus.mute = !userStatus.mute;
+        emitUserInformation();
+    }
+
+    function request_voice_channel(e) {
+        if (denied){
+            denied = false
+        }
+        if (reg_deny){
+            bonk();
+            return;
+        }
+        socket.emit("VOICE_CHANNEL_REQUEST", {"rid": "<%=rid%>", "channel": "<%=selected_channel%>"})
+    }
+    function release_voice_channel(e) {
+        if (reg_deny){
+            return;
+        }
+        if (!denied) {
+            socket.emit("RELEASE_VOICE_CHANNEL", {"rid": "<%= rid %>", "channel": "<%= selected_channel %>"})
+        } else {
+            denied = false
+        }
+    }
+
+    function editButtonClass(target, bool) {
+        const classList = target.classList;
+        classList.remove("enable-btn");
+        classList.remove("disable-btn");
+
+        if (bool)
+            return classList.add("enable-btn");
+
+        classList.add("disable-btn");
+    }
+
+    function emitUserInformation() {
+        socket.emit("userInformation", userStatus);
+    }
+    function updateTextContent(line, newText) {
+        const element = document.getElementById(`line${line}`);
+        element.innerHTML = newText;
+    }
+    function send_emerg(){
+        if (reg_deny){
+            return;
+        }
+        socket.emit("EMERGENCY_CALL", {"rid": "<%= rid %>", "channel": "<%= selected_channel %>"});
+    }
+</script>
+<div style="text-align: center;">
+    <div class="container">
+        <img class="image" src="/files/images/apx6k.png" alt="radio">
+        <div id="line1" class="line1"></div>
+        <div id="line2" class="line2"></div>
+        <div id="line3" class="line3"></div>
+        <button id="pwr_button" class="pwr_button" onclick="radioPowerOn()">PW</button>
+        <button id="emerg_button" class="emerg_button" onclick="send_emerg()">EM</button>
+        <button id="PTT" class="PTT" onmousedown="request_voice_channel(this)" onmouseup="release_voice_channel(this)" >PTTTT</button>
+    </div>
+</div>
+
+<link rel="stylesheet" href="/files/css/index.css">
+</body>
+</html>

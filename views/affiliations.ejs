@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Affiliations</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.1.2/socket.io.js" integrity="sha512-iZIBSs+gDyTH0ZhUem9eQ1t4DcEn2B9lHxfRMeGQhyNdSUz+rb+5A3ummX6DQTOIs1XK0gOteOg/LPtSo9VJ+w==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+</head>
+<script>
+    var socket = io();
+
+    function main(){
+        socket.on("AFFILIATION_LOOKUP_UPDATE", function (data) {
+            console.log(`UPDATED: ${data}`)
+            const affiliationsTableBody = document.getElementById("affiliationsTableBody");
+            affiliationsTableBody.innerHTML = '';
+
+            data.forEach(affiliation => {
+                const newRow = affiliationsTableBody.insertRow();
+
+                const cell1 = newRow.insertCell(0);
+                const cell2 = newRow.insertCell(1);
+
+                cell1.textContent = affiliation.rid;
+                cell2.textContent = affiliation.channel;
+            });
+        });
+    }
+</script>
+<body onload="main()">
+<div class="container mt-5">
+    <h1>Affiliations</h1>
+    <table class="table table-bordered">
+        <thead>
+        <tr>
+            <th>Radio ID</th>
+            <th>Channel</th>
+        </tr>
+        </thead>
+        <tbody id="affiliationsTableBody">
+
+        </tbody>
+    </table>
+</div>
+</body>
+</html>

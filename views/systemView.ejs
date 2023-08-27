@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>whackerlink 3.0</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.1.2/socket.io.js" integrity="sha512-iZIBSs+gDyTH0ZhUem9eQ1t4DcEn2B9lHxfRMeGQhyNdSUz+rb+5A3ummX6DQTOIs1XK0gOteOg/LPtSo9VJ+w==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="/files/css/index.css">
+</head>
+<script>
+    var socket = io();
+</script>
+<body class="bg-dark text-light">
+
+<div class="text-center">
+    <button class="btn btn-primary my-3" onclick="toggleDarkMode()">Toggle Dark Mode</button>
+</div>
+
+<table class="table table-striped">
+    <thead>
+    <tr>
+        <th>Action</th>
+        <th>RID</th>
+        <th>Channel</th>
+        <th>Time</th>
+    </tr>
+    </thead>
+    <tbody id="messageTableBody"></tbody>
+</table>
+<div id="js_thing" ></div>
+<script>
+    let isDarkMode = false;
+
+    function toggleDarkMode() {
+        isDarkMode = !isDarkMode;
+
+        if (isDarkMode) {
+            document.body.classList.add("bg-dark", "text-light");
+        } else {
+            document.body.classList.remove("bg-dark", "text-light");
+        }
+    }
+    function att_alert(){
+        socket.emit('att_alert', "9999");
+    }
+
+    let messageTableBody = document.getElementById('messageTableBody');
+    let js_thing = document.getElementById('js_thing');
+    let helper = {};
+    helper.addMessage = function (action, rid, channel, bgColorClass, textColorClass, stamp) {
+        let row = messageTableBody.insertRow(0);
+        let cell1 = row.insertCell(0);
+        let cell2 = row.insertCell(1);
+        let cell3 = row.insertCell(2);
+        let cell4 = row.insertCell(3);
+
+        cell1.textContent = action;
+        cell2.textContent = rid;
+        cell3.textContent = channel;
+        cell4.textContent = stamp;
+
+        cell1.classList.add("custom-bordered-cell");
+        cell2.classList.add("custom-bordered-cell");
+        cell3.classList.add("custom-bordered-cell");
+        cell4.classList.add("custom-bordered-cell");
+
+
+        if (bgColorClass) {
+            cell1.classList.add(bgColorClass);
+            cell2.classList.add(bgColorClass);
+            cell3.classList.add(bgColorClass);
+            cell4.classList.add(bgColorClass);
+        }
+
+        if (textColorClass) {
+            cell1.classList.add(textColorClass);
+            cell2.classList.add(textColorClass);
+            cell3.classList.add(textColorClass);
+            cell4.classList.add(textColorClass);
+        }
+    }
+
+    socket.on('VOICE_CHANNEL_GRANT', function (msg) {
+        var rid = msg.rid;
+        var channel = msg.channel;
+        var bgColorClass = "bg-success";
+        var textColorClass = "text-white";
+        helper.addMessage("Voice Channel Grant", rid, channel, bgColorClass, textColorClass, msg.stamp);
+    });
+
+    socket.on('VOICE_CHANNEL_RELEASE', function (msg) {
+        var rid = msg.rid;
+        var channel = msg.channel;
+        var bgColorClass = "bg-success";
+        var textColorClass = "text-white";
+        helper.addMessage("Voice Channel Release", rid, channel, bgColorClass, textColorClass,msg.stamp);
+    });
+
+    socket.on('VOICE_CHANNEL_DENY', function (msg) {
+        var rid = msg.rid;
+        var channel = msg.channel;
+        var bgColorClass = "bg-warning";
+        var textColorClass = "text-white";
+        helper.addMessage("Voice Channel Request Deny", rid, channel, bgColorClass, textColorClass,msg.stamp);
+    });
+
+    socket.on('CHANNEL_AFFILIATION_GRANTED', function (msg){
+        var rid = msg.rid;
+        var channel = msg.channel;
+        var bgColorClass = "bg-success";
+        var textColorClass = "text-white";
+        helper.addMessage("Affiliation Grant", rid, channel, bgColorClass, textColorClass,msg.stamp);
+    });
+
+    socket.on('EMERGENCY_CALL', function (msg) {
+        var rid = msg.rid;
+        var channel = msg.channel;
+        var bgColorClass = "flash-bg-danger";
+        var textColorClass = "text-white";
+        helper.addMessage("Emergency Call", rid, channel, bgColorClass, textColorClass,msg.stamp);
+    });
+    socket.on('REG_DENIED', function (msg) {
+        var rid = msg;
+        var channel = "N/A";
+        var bgColorClass = "bg-warning";
+        var textColorClass = "text-white";
+        helper.addMessage("Register Deny", rid, channel, bgColorClass, textColorClass, "N/A");
+    });
+    socket.on('REG_GRANTED', function (msg) {
+        var rid = msg;
+        var channel = "N/A";
+        var bgColorClass = "bg-success";
+        var textColorClass = "text-white";
+        helper.addMessage("Register Grant", rid, channel, bgColorClass, textColorClass, "N/A");
+    });
+</script>
+</body>

@@ -1,0 +1,129 @@
+html , body {
+    width: 100%;
+    height: 100%;
+    background: grey;
+}
+.bg-red {
+    background-color: red;
+}
+.bg-green {
+    background-color: green;
+}
+.custom-bordered-cell {
+    border: 3px solid #ccc;
+    padding: 8px;
+}
+.container {
+    position: relative;
+    display: inline-block;
+}
+
+.image {
+    display: block;
+    height: 80%;
+    width: 80%;
+}
+.line1 {
+    position: absolute;
+    top: 76%;
+    left: 39.5%;
+    transform: translate(-50%, -50%);
+    z-index: 1;
+    color: black;
+    font-size: 20px;
+    font-family: Helvetica, serif;
+    font-weight: bold;
+    text-align: center;
+}
+.line2 {
+    position: absolute;
+    top: 79.5%;
+    left: 39.5%;
+    transform: translate(-50%, -50%);
+    z-index: 1;
+    color: black;
+    font-size: 25px;
+    font-family: Helvetica, serif;
+    font-weight: bold;
+    text-align: center;
+}
+.line3 {
+    position: absolute;
+    top: 84%;
+    left: 40%;
+    transform: translate(-50%, -50%);
+    z-index: 1;
+    color: black;
+    font-size: 20px;
+    font-family: Helvetica, serif;
+    font-weight: bold;
+    text-align: center;
+}
+
+.pwr_button {
+    position: absolute;
+    border-radius: 100%;
+    cursor: pointer;
+    top: 45%;
+    left: 70%;
+    transform: translate(-50%, -50%);
+    z-index: 1;
+    font-size: 50px;
+    font-family: Helvetica,serif;
+    font-weight: bold;
+    text-align: center;
+    color: transparent;
+    background: transparent;
+    padding: 0;
+    margin: 0;
+    border: 0;
+}
+.emerg_button {
+    position: absolute;
+    border-radius: 100%;
+    cursor: pointer;
+    top: 50%;
+    left: 22%;
+    transform: translate(-50%, -50%);
+    z-index: 1;
+    font-size: 30px;
+    font-family: Helvetica, serif;
+    font-weight: bold;
+    text-align: center;
+    color: transparent;
+    background: transparent;
+    padding: 0;
+    margin: 0;
+    border: 0;
+    height: 30px;
+}
+.PTT {
+    position: absolute;
+    cursor: pointer;
+    top: 88%;
+    left: 70%;
+    transform: translate(-50%, -50%);
+    z-index: 1;
+    font-size: 13px;
+    font-family: Helvetica,serif;
+    font-weight: bold;
+    text-align: center;
+    color: transparent;
+    background: transparent;
+    padding: 0;
+    margin: 0;
+    border: 0;
+    height: 175px;
+}
+@keyframes flash {
+    0%, 100% {
+        background-color: inherit;
+    }
+    50% {
+        background-color: red;
+    }
+}
+
+.flash-bg-danger {
+    animation: flash 1s infinite;
+}
