@@ -1,0 +1,21 @@
+system:
+  networkName: 'Whacker Net' #Network name
+  networkBindAddress: '0.0.0.0' #Bind to address for the network
+  networkBindPort: 3000 #Bimd to port for the network
+
+paths:
+  fullPath: '/home/user/whackerlink' #FULL path to whackerlink
+  rconLogins: './rcon_logins.json' #FULL path to json rcon logins
+  sheetsJson: './something-124.json' #FULL path to the google sheets json file
+
+configuration:
+  sheetId: '' #Sheet ID for the google sheet
+
+peer: #Currently WIP no need to touch
+  externalPeerEnable: false #Enable external software peering
+  username: 'whacker' #Username for peer to login to
+  password: 'link' #Password for peer to login to
+  rid: '9998'
+  channel: 'Main'
+  metaData: true #Pass pages, emergency, etc
+  rconEnable: true #Allow RCON functions from the peer
