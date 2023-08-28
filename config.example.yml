@@ -1,7 +1,7 @@
 system:
   networkName: 'Whacker Net' #Network name
   networkBindAddress: '0.0.0.0' #Bind to address for the network
-  networkBindPort: 3000 #Bimd to port for the network
+  networkBindPort: 3000 #Bind to port for the network
 
 paths:
   fullPath: '/home/user/whackerlink' #FULL path to whackerlink

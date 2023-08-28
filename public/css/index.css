@@ -115,6 +115,55 @@ html , body {
     border: 0;
     height: 175px;
 }
+.menu1 {
+    position: absolute;
+    top: 88.5%;
+    left: 29%;
+    transform: translate(-50%, -50%);
+    z-index: 1;
+    color: black;
+    font-size: 20px;
+    font-family: Helvetica, serif;
+    font-weight: bold;
+    text-align: center;
+    background: darkturquoise;
+    border: 0px;
+    border-right-color: black;
+    padding: 2px 5px;
+}
+.menu2 {
+    position: absolute;
+    top: 88.5%;
+    left: 40.5%;
+    transform: translate(-50%, -50%);
+    z-index: 1;
+    color: black;
+    font-size: 20px;
+    font-family: Helvetica, serif;
+    font-weight: bold;
+    text-align: center;
+    background: darkturquoise;
+    border: 0px;
+    border-left-color: black;
+    padding: 2px 5px;
+}
+.menu3 {
+    position: absolute;
+    top: 88.5%;
+    left: 51.5%;
+    transform: translate(-50%, -50%);
+    z-index: 1;
+    color: black;
+    font-size: 20px;
+    font-family: Helvetica, serif;
+    font-weight: bold;
+    text-align: center;
+    background: darkturquoise;
+    border-left-color: black;
+    border: 0px;
+
+    padding: 2px 5px;
+}
 @keyframes flash {
     0%, 100% {
         background-color: inherit;

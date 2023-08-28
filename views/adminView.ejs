@@ -8,6 +8,20 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.1.2/socket.io.js" integrity="sha512-iZIBSs+gDyTH0ZhUem9eQ1t4DcEn2B9lHxfRMeGQhyNdSUz+rb+5A3ummX6DQTOIs1XK0gOteOg/LPtSo9VJ+w==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
     <link rel="stylesheet" href="/files/css/index.css">
+    <style>
+        #form {
+            background: rgb(0, 0, 0);
+            padding: 0.25rem;
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            display: flex;
+            height: 3rem;
+            box-sizing: border-box;
+            backdrop-filter: blur(10px);
+        }
+    </style>
 </head>
 <script>
     var socket = io();
@@ -17,18 +31,31 @@
 <div class="text-center">
     <button class="btn btn-primary my-3" onclick="toggleDarkMode()">Toggle Dark Mode</button>
 </div>
-
 <table class="table table-striped">
     <thead>
     <tr>
         <th>Action</th>
-        <th>RID</th>
-        <th>Channel</th>
+        <th>SrcID</th>
+        <th>DstId</th>
         <th>Time</th>
     </tr>
     </thead>
     <tbody id="messageTableBody"></tbody>
 </table>
+<div id="rcon">
+    <form id="form" action="">
+        <input id="input" autocomplete="off" />
+        <label for="rcon_action">Action:</label>
+
+        <select name="rcon_action" id="rcon_action">
+            <option value="rid_page">RID Page</option>
+            <option value="rid_qc2_page">RID QC2 Page</option>
+            <option value="rid_inhibit" style="background: red;">RID Inhibit</option>
+            <option value="rid_uninhibit" style="background: orangered;">RID UN-Inhibit</option>
+        </select>
+        <button>Send</button>
+    </form>
+</div>
 <div id="js_thing" ></div>
 <script>
     let isDarkMode = false;
@@ -185,6 +212,38 @@
         var bgColorClass = "bg-warning";
         var textColorClass = "text-white";
         helper.addMessage("RID Uninhibit ACK", rid, channel, bgColorClass, textColorClass, "N/A");
+    });
+
+    var rid_pager = "999999999";
+
+    var messages = document.getElementById('messages');
+    var form = document.getElementById('form');
+    var input = document.getElementById('input');
+    var rcon_action = document.getElementById('rcon_action');
+
+    form.addEventListener('submit', function(e) {
+        e.preventDefault();
+        if (rcon_action.value === "rid_inhibit"){
+            if (input.value) {
+                socket.emit('RID_INHIBIT', {channel: input.value, rid: rid_pager});
+                input.value = '';
+            }
+        } else if (rcon_action.value === "rid_page"){
+            if (input.value) {
+                socket.emit('RID_PAGE', {channel: input.value, rid: rid_pager});
+                input.value = '';
+            }
+        } else if (rcon_action.value === "rid_qc2_page"){
+            if (input.value) {
+                socket.emit('RID_QC2', {channel: input.value, rid: rid_pager});
+                input.value = '';
+            }
+        } else if (rcon_action.value === "rid_uninhibit"){
+            if (input.value) {
+                socket.emit('RID_UNINHIBIT', {channel: input.value, rid: rid_pager});
+                input.value = '';
+            }
+        }
     });
 </script>
 </body>

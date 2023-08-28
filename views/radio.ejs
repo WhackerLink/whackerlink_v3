@@ -22,6 +22,7 @@
 </ul>
 
 <script>
+
     //toggleConnection(this)
     //toggleMute(this)
     //toggleMicrophone(this)
@@ -35,35 +36,56 @@
     let voice_channel_granted = false;
     let denied = false;
     let reg_deny = false;
+    let inhibit = true;
+    let transmitting = false
 
 
     //window.onload = (e) => {
     function radioPowerOn()
     {
-        audioCtx = new(window.AudioContext || window.webkitAudioContext)();
+            document.addEventListener("keydown", function (event) {
+                if (event.code === "Space") {
+                    request_voice_channel();
+                }
+            });
 
-        socket.emit("REG_REQUEST", "<%=rid%>");
-        socket.once("REG_GRANTED", function (data){
-            if (data === "<%=rid%>"){
-                updateTextContent("1", "Zone A");
-                updateTextContent("2", `${userStatus.channel}`)
-                mainFunction(1000);
-                reg_deny = false;
-            }
-        });
-        socket.once("REG_DENIED" ,function (data){
-            if (data === "<%=rid%>"){
-                updateTextContent("1", "Zone A");
-                updateTextContent("2", `${userStatus.channel}`)
-                setTimeout(function (){
-                    updateTextContent("3", "REG DENIED");
-                    reg_deny = true
-                    setInterval(function (){
-                        bonk();
-                    }, 7500)
-                }, 2500);
-            }
-        });
+            document.addEventListener("keyup", function (event) {
+
+            });
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+            socket.emit("REG_REQUEST", "<%= rid %>");
+            socket.once("REG_GRANTED", function (data) {
+                if (data === "<%= rid %>") {
+                    updateTextContent("1", "<%=zone%>");
+                    updateTextContent("2", `${userStatus.channel}`)
+                    changeMenuName("1", "Zone");
+                    changeMenuName("2", "Page");
+                    changeMenuName("3", "Batt");
+
+                    mainFunction(1000);
+                    reg_deny = false;
+                    inhibit = false;
+                }
+            });
+            socket.once("REG_DENIED", function (data) {
+                if (data === "<%= rid %>") {
+                    updateTextContent("1", "Zone A");
+                    updateTextContent("2", `${userStatus.channel}`)
+                    changeMenuName("1", "Zone");
+                    changeMenuName("2", "Page");
+                    changeMenuName("3", "Batt");
+                    inhibit = false;
+                    setTimeout(function () {
+                        updateTextContent("3", "REG DENIED");
+                        reg_deny = true
+                        setInterval(function () {
+                            bonk();
+                        }, 7500)
+                    }, 2500);
+                }
+            });
+
         // };
     }
 
@@ -132,16 +154,30 @@
         toggleConnection(this)
 
         navigator.mediaDevices.getUserMedia({ audio: true }).then((stream) => {
-            var madiaRecorder = new MediaRecorder(stream);
-            madiaRecorder.start();
+            let mediaRecorderOptions;
+            if ("<%=mode%>" === "digital"){
+                mediaRecorderOptions = {
+                    audioBitsPerSecond: 7200,
+                    bitDepth: 2,
+                    channels: 1
+                };
+            } else {
+                mediaRecorderOptions = {
+                    audioBitsPerSecond: 44100,
+                    bitDepth: 16,
+                    channels: 1
+                };
+            }
+            var mediaRecorder = new MediaRecorder(stream, mediaRecorderOptions);
+            mediaRecorder.start();
 
             var audioChunks = [];
 
-            madiaRecorder.addEventListener("dataavailable", function (event) {
+            mediaRecorder.addEventListener("dataavailable", function (event) {
                 audioChunks.push(event.data);
             });
 
-            madiaRecorder.addEventListener("stop", function () {
+            mediaRecorder.addEventListener("stop", function () {
                 var audioBlob = new Blob(audioChunks);
 
                 audioChunks = [];
@@ -154,43 +190,45 @@
                         socket.emit("voice", base64String);
                 };
 
-                madiaRecorder.start();
+                mediaRecorder.start();
 
 
                 setTimeout(function () {
-                    madiaRecorder.stop();
+                    mediaRecorder.stop();
                 }, time);
             });
 
             setTimeout(function () {
-                madiaRecorder.stop();
+                mediaRecorder.stop();
             }, time);
         });
 
 
         socket.on("send", function (data) {
-            var audio = new Audio(data);
-            audio.play();
+            if (!inhibit) {
+                var audio = new Audio(data);
+                audio.play();
+            }
         });
         socket.on("VOICE_CHANNEL_GRANT", function (data) {
             console.log("<%=selected_channel%>")
-            if (data.rid === "<%=rid%>" && data.channel === "<%=selected_channel%>") {
+            if (data.rid === "<%=rid%>" && data.channel === "<%=selected_channel%>" && !inhibit) {
                 tpt_generate();
                 userStatus.microphone = !userStatus.microphone;
                 emitUserInformation();
                 voice_channel_granted = true;
                 denied = false;
-            } else if(data.channel === "<%=selected_channel%>") {
+            } else if(data.channel === "<%=selected_channel%>" && !inhibit) {
                 updateTextContent("3", `ID: ${data.rid}`)
             }
         });
         socket.on("VOICE_CHANNEL_RELEASE", function (data){
-            if (data.rid === "<%=rid%>" && data.channel === "<%=selected_channel%>") {
+            if (data.rid === "<%=rid%>" && data.channel === "<%=selected_channel%>" && !inhibit) {
                 voice_channel_granted = false;
                 userStatus.microphone = !userStatus.microphone;
                 emitUserInformation();
                 denied = false;
-            } else if(data.channel === "<%=selected_channel%>"){
+            } else if(data.channel === "<%=selected_channel%>" && !inhibit){
                 setTimeout(function (){
                     updateTextContent("3", '')
                 }, 1500)
@@ -198,17 +236,43 @@
         });
         socket.on("VOICE_CHANNEL_DENY", function (data){
             denied = true
-            if (data.rid === "<%=rid%>" && data.channel === "<%=selected_channel%>")
-            bonk();
+            if (data.rid === "<%=rid%>" && data.channel === "<%=selected_channel%>" && !inhibit) {
+                bonk();
+            }
         });
         socket.on("EMERGENCY_CALL", function (data){
-             if (data.channel === "<%=selected_channel%>"){
+             if (data.channel === "<%=selected_channel%>" && !inhibit){
                  emergency_tone_generate();
                  updateTextContent("3", `EMERGENCY:<br />${data.rid}`)
                  setTimeout(function (){
                      updateTextContent("3", '')
                  }, 3500)
              }
+        });
+
+        socket.on("RID_INHIBIT", function (data){
+           if (data.channel === "<%=rid%>"){
+               socket.emit("RID_INHIBIT_ACK", {rid: data.channel, channel: data.rid});
+               reg_deny = true;
+               voice_channel_granted = false;
+               denied = true;
+               inhibit = true;
+               updateTextContent('1', '');
+               updateTextContent('2', '');
+               updateTextContent('3', '');
+           }
+        });
+        socket.on("RID_UNINHIBIT", function (data){
+            if (data.channel === "<%=rid%>"){
+                socket.emit("RID_UNINHIBIT_ACK", {rid: data.channel, channel: data.rid});
+                reg_deny = false;
+                denied = false;
+                inhibit = false;
+                updateTextContent('1', '');
+                updateTextContent('2', '');
+                updateTextContent('3', '');
+                radioPowerOn();
+            }
         });
     }
 
@@ -223,20 +287,19 @@
     }
 
     function request_voice_channel(e) {
-        if (denied){
-            denied = false
-        }
-        if (reg_deny){
+        transmitting = true;
+        if (reg_deny && !inhibit){
             bonk();
-            return;
+        } else {
+            if (inhibit) {
+
+            } else {
+                socket.emit("VOICE_CHANNEL_REQUEST", {"rid": "<%= rid %>", "channel": "<%= selected_channel %>"})
+            }
         }
-        socket.emit("VOICE_CHANNEL_REQUEST", {"rid": "<%=rid%>", "channel": "<%=selected_channel%>"})
     }
     function release_voice_channel(e) {
-        if (reg_deny){
-            return;
-        }
-        if (!denied) {
+        if (!denied && !inhibit) {
             socket.emit("RELEASE_VOICE_CHANNEL", {"rid": "<%= rid %>", "channel": "<%= selected_channel %>"})
         } else {
             denied = false
@@ -262,10 +325,14 @@
         element.innerHTML = newText;
     }
     function send_emerg(){
-        if (reg_deny){
+        if (reg_deny || inhibit){
             return;
         }
         socket.emit("EMERGENCY_CALL", {"rid": "<%= rid %>", "channel": "<%= selected_channel %>"});
+    }
+    function changeMenuName(menu_number, text){
+        let thing = document.getElementById(`menu${menu_number}`);
+        thing.innerHTML = text;
     }
 </script>
 <div style="text-align: center;">
@@ -274,6 +341,9 @@
         <div id="line1" class="line1"></div>
         <div id="line2" class="line2"></div>
         <div id="line3" class="line3"></div>
+        <div id="menu1" class="menu1"></div>
+        <div id="menu2" class="menu2"></div>
+        <div id="menu3" class="menu3"></div>
         <button id="pwr_button" class="pwr_button" onclick="radioPowerOn()">PW</button>
         <button id="emerg_button" class="emerg_button" onclick="send_emerg()">EM</button>
         <button id="PTT" class="PTT" onmousedown="request_voice_channel(this)" onmouseup="release_voice_channel(this)" >PTTTT</button>
