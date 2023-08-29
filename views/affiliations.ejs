@@ -12,6 +12,7 @@
     var socket = io();
 
     function main(){
+        socket.emit("AFFILIATION_LIST_REQUEST");
         socket.on("AFFILIATION_LOOKUP_UPDATE", function (data) {
             console.log(`UPDATED: ${data}`)
             const affiliationsTableBody = document.getElementById("affiliationsTableBody");

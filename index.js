@@ -111,9 +111,9 @@ try {
         if (index !== -1) {
             affiliations.splice(index, 1);
         }
-        affiliations.forEach(affiliation => {
-            console.log(affiliation);
-        });
+        // affiliations.forEach(affiliation => {
+        //     console.log(affiliation);
+        // });
         io.emit('AFFILIATION_LOOKUP_UPDATE', affiliations);
     }
     function addAffiliation(rid, channel){
@@ -148,6 +148,10 @@ try {
             io.sockets.emit("usersUpdate", socketsStatus);
         });
 
+        socket.on("AFFILIATION_LIST_REQUEST", function(){
+            io.emit('AFFILIATION_LOOKUP_UPDATE', affiliations);
+        });
+
         socket.on("VOICE_CHANNEL_REQUEST", function (data){
             console.log(`VOICE_CHANNEL_REQUEST FROM: ${data.rid} TO: ${data.channel}`);
 
@@ -175,14 +179,12 @@ try {
                     data.stamp = cdtDateTime;
                     io.emit("VOICE_CHANNEL_GRANT", data);
                     console.log(`VOICE_CHANNEL_GRANT GIVEN TO: ${data.rid} ON: ${data.channel}`);
-                    console.log("DEBUG1 " + grantedChannels[data.channel])
                     grantedChannels[data.channel] = true;
                     grantedRids[data.rid] = true;
                 } else {
                     data.stamp = cdtDateTime;
                     io.emit("VOICE_CHANNEL_DENY", data);
                     console.log(`VOICE_CHANNEL_DENY GIVEN TO: ${data.rid} ON: ${data.channel}`);
-                    console.log("DEBUG2 " + grantedChannels[data.channel])
                     grantedChannels[data.channel] = false;
                 }
 
@@ -193,12 +195,14 @@ try {
             data.stamp = getDaTime();
             console.log(`RELEASE_VOICE_CHANNEL FROM: ${data.rid} TO: ${data.channel}`);
             io.emit("VOICE_CHANNEL_RELEASE", data);
-            console.log("DEBUG3 " + grantedChannels[data.channel])
             grantedRids[data.rid] = false;
             grantedChannels[data.channel] = false;
         });
 
-        socket.on("disconnect", function () {
+        socket.on("disconnect", function (data) {
+            if (socketsStatus[socketId].username) {
+                removeAffiliation(socketsStatus[socketId].username);
+            }
             delete socketsStatus[socketId];
         });
 
@@ -270,7 +274,6 @@ try {
             io.emit("REG_REQUEST", rid);
             String.prototype.isNumber = function(){return /^\d+$/.test(this);}
             let ridAcl = await readGoogleSheet(googleSheetClient, sheetId, "rid_acl", "A:B");
-            console.log(ridAcl);
             const matchingEntry = ridAcl.find(entry => entry[0] === rid);
             setTimeout(function (){
                 if (rid.isNumber()) {
@@ -293,6 +296,7 @@ try {
             }, 1500);
         });
     });
+
     async function getGoogleSheetClient() {
         const auth = new google.auth.GoogleAuth({
             keyFile: serviceAccountKeyFile,
