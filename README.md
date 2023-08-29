@@ -33,7 +33,3 @@ Copy the directory your whackerlink files are in and open CMD. Run the command `
 ## Step 8:
 
 Enjoy whackerlink. Use `/sys_view` and `/sys_view/admin` at the end of the URL to look at status. Example: `http://localhost:3000/sys_view`
-
-## Images:
-
-![A](https://github.com/VALER24/wl_images/blob/main/a.png?raw=true)
