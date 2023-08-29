@@ -11,6 +11,8 @@ paths:
 configuration:
   sheetId: '' #Sheet ID for the google sheet
   grantDenyOccurrence: 5 #How often people will get random grant denys. Higher the number less often. Lowest number is 3.
+  discordWebHookEnable: false #Enable discord functions
+  discordWebHookUrl: '' #Webhook URL
 
 peer: #Currently WIP no need to touch
   externalPeerEnable: false #Enable external software peering

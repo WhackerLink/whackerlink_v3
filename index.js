@@ -3,9 +3,11 @@ import basicAuth from "express-basic-auth";
 import session from "express-session";
 import http from "http";
 import {Server as SocketIOServer} from "socket.io";
+import axios from 'axios';
 import fs from "fs";
 import yaml from "js-yaml";
 import {google} from 'googleapis';
+
 const app = express();
 const httpServer = http.createServer(app);
 const io = new SocketIOServer(httpServer);
@@ -36,6 +38,8 @@ try {
     const sheetId = config.configuration.sheetId;
     const externalPeerEnable = config.peer.externalPeerEnable;
     const grantDenyOccurrence = config.configuration.grantDenyOccurrence;
+    const enableDiscord = config.configuration.discordWebHookEnable;
+    const discordWebHookUrl = config.configuration.discordWebHookUrl;
     // const rconUsername = config.peer.username;
     // const rconPassword = config.peer.password;
     // const rconRid = config.peer.rid;
@@ -109,6 +113,44 @@ try {
     app.get("/affiliations" , (req , res)=>{
         res.render("affiliations", {affiliations, networkName});
     });
+    app.get("/tones" , async (req , res)=>{
+        try {
+            const sheetTabs = await getSheetTabs(googleSheetClient, sheetId);
+            const zoneData = [];
+            for (const tab of sheetTabs) {
+                const tabData = await readGoogleSheet(googleSheetClient, sheetId, tab, "A:B");
+                zoneData.push({ zone: tab, content: tabData });
+            }
+            res.render("tones", {zoneData, networkName});
+        } catch (error) {
+            console.error("Error fetching sheet data:", error);
+            res.status(500).send("Error fetching sheet data");
+        }
+    });
+
+
+    async function sendDiscord(message) {
+        const webhookUrl = discordWebHookUrl;
+
+        const embed = {
+            title: 'Last Heard',
+            description: message,
+            color: 0x3498db,
+            timestamp: new Date().toISOString()
+        };
+
+        const data = {
+            embeds: [embed]
+        };
+
+        try {
+            const response = await axios.post(webhookUrl, data);
+            console.log('Webhook sent successfully:', response.data);
+        } catch (error) {
+            console.error('Error sending webhook:', error.message);
+        }
+    }
+
     function getDaTime(){
         const currentDate = new Date();
         const cdtOptions = {
@@ -140,6 +182,14 @@ try {
         const affiliation = affiliations.find(affiliation => affiliation.rid === rid);
         return affiliation ? affiliation.channel : false;
     }
+    function forceGrant(data){
+        data.stamp = getDaTime();
+        io.emit("VOICE_CHANNEL_GRANT", data);
+        console.log(`FORCED VOICE_CHANNEL_GRANT GIVEN TO: ${data.rid} ON: ${data.channel}`);
+        sendDiscord(`Voice Transmission from ${data.rid} on ${data.channel}`);
+        grantedChannels[data.channel] = true;
+        grantedRids[data.rid] = true;
+    }
     io.on("connection", function (socket) {
         const socketId = socket.id;
         socketsStatus[socket.id] = {};
@@ -170,7 +220,6 @@ try {
 
         socket.on("VOICE_CHANNEL_REQUEST", function (data){
             console.log(`VOICE_CHANNEL_REQUEST FROM: ${data.rid} TO: ${data.channel}`);
-
             const cdtDateTime = getDaTime();
             data.stamp = cdtDateTime;
             io.emit("VOICE_CHANNEL_REQUEST", data);
@@ -195,6 +244,7 @@ try {
                     data.stamp = cdtDateTime;
                     io.emit("VOICE_CHANNEL_GRANT", data);
                     console.log(`VOICE_CHANNEL_GRANT GIVEN TO: ${data.rid} ON: ${data.channel}`);
+                    sendDiscord(`Voice Transmission from ${data.rid} on ${data.channel}`);
                     grantedChannels[data.channel] = true;
                     grantedRids[data.rid] = true;
                 } else {
@@ -210,6 +260,8 @@ try {
         socket.on("RELEASE_VOICE_CHANNEL", function (data){
             data.stamp = getDaTime();
             console.log(`RELEASE_VOICE_CHANNEL FROM: ${data.rid} TO: ${data.channel}`);
+            sendDiscord(`Voice Transmission from ${data.rid} on ${data.channel}`);
+
             io.emit("VOICE_CHANNEL_RELEASE", data);
             grantedRids[data.rid] = false;
             grantedChannels[data.channel] = false;
@@ -286,6 +338,22 @@ try {
             }
         });
 
+        socket.on("INFORMATION_ALERT", function(data){
+            io.emit("INFORMATION_ALERT", data);
+            forceGrant(data);
+            setTimeout(function (){
+                io.emit("VOICE_CHANNEL_RELEASE", data);
+            }, 1500);
+        });
+
+        socket.on("CANCELLATION_ALERT", function(data){
+            io.emit("CANCELLATION_ALERT", data);
+            forceGrant(data);
+            setTimeout(function (){
+                io.emit("VOICE_CHANNEL_RELEASE", data);
+            }, 1500);
+        });
+
         socket.on("REG_REQUEST", async function (rid){
             io.emit("REG_REQUEST", rid);
             String.prototype.isNumber = function(){return /^\d+$/.test(this);}
@@ -310,6 +378,9 @@ try {
                     console.log("REG_DENIED: " + rid);
                 }
             }, 1500);
+        });
+        socket.on("FORCE_VOICE_CHANNEL_GRANT", function(data){
+            forceGrant(data);
         });
     });
 

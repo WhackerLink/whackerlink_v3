@@ -283,6 +283,18 @@
                 radioPowerOn();
             }
         });
+        socket.on("INFORMATION_ALERT", function (data){
+            if (data.channel === "<%=selected_channel%>") {
+                let audio = new Audio('/files/audio/info_tone.wav');
+                audio.play();
+            }
+        });
+        socket.on("CANCELLATION_ALERT", function (data){
+            if (data.channel === "<%=selected_channel%>") {
+                let audio = new Audio('/files/audio/cancel_tone.wav');
+                audio.play();
+            }
+        });
     }
 
     function toggleConnection(e) {
