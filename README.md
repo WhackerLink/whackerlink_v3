@@ -33,3 +33,7 @@ Copy the directory your whackerlink files are in and open CMD. Run the command `
 ## Step 8:
 
 Enjoy whackerlink. Use `/sys_view` and `/sys_view/admin` at the end of the URL to look at status. Example: `http://localhost:3000/sys_view`
+
+## Images:
+
+![](https://drive.google.com/file/d/12u8Gf5AuOjrt6ml6zV902PKlym20Hd8X/view?usp=drive_link)
