@@ -36,4 +36,4 @@ Enjoy whackerlink. Use `/sys_view` and `/sys_view/admin` at the end of the URL t
 
 ## Images:
 
-![](https://drive.google.com/file/d/12u8Gf5AuOjrt6ml6zV902PKlym20Hd8X/view?usp=drive_link)
+![A](https://github.com/valer24/wl_images/blob/main/a.png?raw=true)
