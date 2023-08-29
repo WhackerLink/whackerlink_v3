@@ -26,11 +26,31 @@
 
                 cell1.textContent = affiliation.rid;
                 cell2.textContent = affiliation.channel;
+
+                newRow.setAttribute("data-rid", affiliation.rid);
+                newRow.setAttribute("data-channel", affiliation.channel);
+
+                socket.on("VOICE_CHANNEL_GRANT", function (voiceData) {
+                    if (affiliation.rid === voiceData.rid && affiliation.channel === voiceData.channel) {
+                        newRow.classList.add("table-primary");
+                    }
+                });
+                socket.on("VOICE_CHANNEL_RELEASE", function (voiceData) {
+                    if (affiliation.rid === voiceData.rid && affiliation.channel === voiceData.channel) {
+                        newRow.classList.remove("table-success");
+                        newRow.classList.remove("table-primary");
+                        newRow.classList.remove("table-secondary");
+                        newRow.classList.remove("table-info");
+                        newRow.classList.remove("table-warning");
+                        newRow.classList.remove("table-danger");
+                    }
+                });
             });
         });
     }
 </script>
-<body onload="main()">
+<body class="bg-dark text-light" onload="main()">
+
 <div class="container mt-5">
     <h1>Affiliations</h1>
     <table class="table table-bordered">

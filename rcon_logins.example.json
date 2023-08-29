@@ -1,12 +1,4 @@
-[
-  {
-    "user": "changemeuser",
-    "password": "changemepassword"
-  },
-  {
-    "user": "user2",
-    "password": "user2password"
-  }
-]
-
-NOT USED YET
+{
+  "admin": "password",
+  "other": "otherpassword"
+}

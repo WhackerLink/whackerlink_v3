@@ -1,4 +1,6 @@
 import express from "express";
+import basicAuth from "express-basic-auth";
+import session from "express-session";
 import http from "http";
 import {Server as SocketIOServer} from "socket.io";
 import fs from "fs";
@@ -12,7 +14,6 @@ const socketsStatus = {};
 const grantedChannels = {};
 const grantedRids = {};
 const affiliations = [];
-
 
 const configFilePathIndex = process.argv.indexOf('-c');
 if (configFilePathIndex === -1 || process.argv.length <= configFilePathIndex + 1) {
@@ -65,6 +66,21 @@ try {
 
     const googleSheetClient = await getGoogleSheetClient();
 
+    const loginsFile = fs.readFileSync(rconLogins);
+    const adminUsers = JSON.parse(loginsFile);
+
+    app.use(session({
+        secret: "super_secret_password!2",
+        resave: false,
+        saveUninitialized: true
+    }));
+
+    const auth = basicAuth({
+        users: adminUsers,
+        challenge: true,
+        unauthorizedResponse: "Unauthorized",
+    });
+
     app.set("view engine", "ejs");
     app.use("/files", express.static("public"));
     app.get("/" , async (req , res)=>{
@@ -75,7 +91,7 @@ try {
                 const tabData = await readGoogleSheet(googleSheetClient, sheetId, tab, "A:B");
                 zoneData.push({ zone: tab, content: tabData });
             }
-            res.render("index", { zoneData });
+            res.render("index", {zoneData, networkName});
         } catch (error) {
             console.error("Error fetching sheet data:", error);
             res.status(500).send("Error fetching sheet data");
@@ -85,13 +101,13 @@ try {
         res.render("radio", {selected_channel: req.query.channel, rid: req.query.rid, mode: req.query.mode, zone: req.query.zone});
     });
     app.get("/sys_view" , (req , res)=>{
-        res.render("systemView");
+        res.render("systemView", {networkName});
     });
-    app.get("/sys_view/admin" , (req , res)=>{
-        res.render("adminView");
+    app.get("/sys_view/admin",auth, (req , res)=>{
+        res.render("adminView", {networkName});
     });
     app.get("/affiliations" , (req , res)=>{
-        res.render("affiliations", {affiliations});
+        res.render("affiliations", {affiliations, networkName});
     });
     function getDaTime(){
         const currentDate = new Date();
