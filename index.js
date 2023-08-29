@@ -34,6 +34,7 @@ try {
     const serviceAccountKeyFile = config.paths.sheetsJson;
     const sheetId = config.configuration.sheetId;
     const externalPeerEnable = config.peer.externalPeerEnable;
+    const grantDenyOccurrence = config.configuration.grantDenyOccurrence;
     // const rconUsername = config.peer.username;
     // const rconPassword = config.peer.password;
     // const rconRid = config.peer.rid;
@@ -48,7 +49,13 @@ try {
     console.log('RCON Logins Path:', rconLogins);
     console.log('Sheets JSON Path:', serviceAccountKeyFile);
     console.log('Sheet ID:', sheetId);
+    console.log('grantDenyOccurrence:', grantDenyOccurrence);
     console.log('External Peer Enable:', externalPeerEnable);
+
+    if (grantDenyOccurrence < 3){
+        console.log("grantDenyOccurrence can not be lower than three");
+        throw Error;
+    }
     // console.log('Username:', username);
     // console.log('Password:', password);
     // console.log('RID:', rid);
@@ -348,5 +355,5 @@ try {
     });
 
 } catch (error) {
-    console.error('Error reading or parsing the configuration file:', error.message);
+    console.error('Error starting. Maybe config file?: ', error.message);
 }
