@@ -38,20 +38,25 @@
     let reg_deny = false;
     let inhibit = true;
     let transmitting = false
-
+    let voiceChannelRequested = false;
+    let voiceChannelReleased = false;
 
     //window.onload = (e) => {
     function radioPowerOn()
     {
-            document.addEventListener("keydown", function (event) {
-                if (event.code === "Space") {
-                    request_voice_channel();
-                }
-            });
+        document.addEventListener("keydown", function (event) {
+            if (event.code === "Space" && !voiceChannelRequested) {
+                voiceChannelRequested = true;
+                request_voice_channel();
+            }
+        });
 
-            document.addEventListener("keyup", function (event) {
-
-            });
+        document.addEventListener("keyup", function (event) {
+            if (event.code === "Space" && !voiceChannelReleased) {
+                voiceChannelReleased = true;
+                release_voice_channel();
+            }
+        });
             audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
             socket.emit("REG_REQUEST", "<%= rid %>");
@@ -238,6 +243,10 @@
             denied = true
             if (data.rid === "<%=rid%>" && data.channel === "<%=selected_channel%>" && !inhibit) {
                 bonk();
+                setTimeout(function (){
+                    voiceChannelRequested = false;
+                    voiceChannelReleased = false;
+                }, 1500);
             }
         });
         socket.on("EMERGENCY_CALL", function (data){
@@ -301,6 +310,8 @@
     function release_voice_channel(e) {
         if (!denied && !inhibit) {
             socket.emit("RELEASE_VOICE_CHANNEL", {"rid": "<%= rid %>", "channel": "<%= selected_channel %>"})
+            voiceChannelRequested = false;
+            voiceChannelReleased = false;
         } else {
             denied = false
         }
