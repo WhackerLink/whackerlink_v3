@@ -33,3 +33,7 @@ Copy the directory your whackerlink files are in and open CMD. Run the command `
 ## Step 8:
 
 Enjoy whackerlink. Use `/sys_view` and `/sys_view/admin` at the end of the URL to look at status. Example: `http://localhost:3000/sys_view`
+
+Images:
+
+![image1](https://media.discordapp.net/attachments/1146051497285652560/1146198712079630396/1.jpg)
