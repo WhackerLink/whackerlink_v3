@@ -2,17 +2,18 @@
 
 [![License](https://img.shields.io/badge/License-GPLv3-blue?style=for-the-badge)](https://www.gnu.org/licenses/gpl-3.0)
 
-Currently only tested for Windows 10/Server 2019. Linux and other versions of Windows may not work properly. Readme written by Collin K0NNK, WhackerLink developed by Caleb KO4UYJ.
-
 ## Setup:
 
 ### Download NodeJS
+#### Windows:
 
-Download node.js and make sure it’s running on your computer. https://nodejs.org/en
+Download and install node.js: https://nodejs.org/en
+#### Linux:
+`sudo apt install nodejs npm`
 
 ### Setup Google Dev
 
-Setup google sheets for dev. Pictures to show how it’s done are at the bottom. Follow the order of images 1 to 15. Link to google: https://console.cloud.google.com/projectcreate
+Setup google sheets for integration. Pictures to show how it’s done are at the bottom. Follow the order of images 1 to 15. Link to google: https://console.cloud.google.com/projectcreate
 
 ### Setup Google Sheets Config
 
@@ -20,15 +21,15 @@ Setup your google sheets for channels and RIDs. Pictures at the bottom.
 
 ### Download WhackerLink
 
-Download the WhackerLink files from this github repo onto your PC.
+Clone whackerlink repository
 
 ### Set config files
 
-Setup the config files. Rename the `config.example.yml` file to `config.yml` and open it in notepad or your favorite code editor. Also rename the `rcon_logins.example.yml` to just `rcon_logins.yml`.
+Setup the config files. Rename the `config.example.yml` file to `config.yml` and open it in notepad or your favorite editor. Also rename the `rcon_logins.example.yml` to `rcon_logins.yml`.
 
 ### Finish config files
 
-Put the google json file into the root directory of whackerlink and rename it to `google.json`. Open the `config.yml` file and under the `‘sheetsJson: './something-124.json'` change `‘./something-124.json’` to `‘google.json’`. Under the sheetsID put the google sheet that the rids and channels are listed in. The ID should look something like this: `14KmRdIIGcLWQnM4sWBKFxJOmqj7-Mh0vXO8taKsEgJU`.
+Put the google json file into the root directory of whackerlink and rename it to `google.json`. Open the `config.yml` file and under the `‘sheetsJson: './something-124.json'` change `‘./something-124.json’` to `‘google.json’`. Under the sheetsID put the google sheet that the rids and channels are listed in. The ID should look something like this: `14KmRdIIGcLWQnM4sWBKFxJOmqj7-Mh0vXO8taKsEgJU`. You can find this in the URL of your sheet while viewing.
 
 ### Run WhackerLink
 
