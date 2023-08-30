@@ -104,6 +104,20 @@ try {
     app.get("/radio" , (req , res)=>{
         res.render("radio", {selected_channel: req.query.channel, rid: req.query.rid, mode: req.query.mode, zone: req.query.zone});
     });
+    app.get("/console", async (req, res) => {
+        try {
+            const sheetTabs = await getSheetTabs(googleSheetClient, sheetId);
+            const zoneData = [];
+            for (const tab of sheetTabs) {
+                const tabData = await readGoogleSheet(googleSheetClient, sheetId, tab, "A:B");
+                zoneData.push({ zone: tab, content: tabData });
+            }
+            res.render("console", {zoneData, networkName});
+        } catch (error) {
+            console.error("Error fetching sheet data:", error);
+            res.status(500).send("Error fetching sheet data");
+        }
+    });
     app.get("/sys_view" , (req , res)=>{
         res.render("systemView", {networkName});
     });
@@ -205,7 +219,7 @@ try {
                 const recipientChannel = socketsStatus[id].channel;
 
                 if (id != socketId && !socketsStatus[id].mute && socketsStatus[id].online && senderChannel === recipientChannel)
-                    socket.broadcast.to(id).emit("send", newData);
+                    socket.broadcast.to(id).emit("send", {newData: newData, rid: socketsStatus[id].username, channel: socketsStatus[id].channel});
             }
         });
 
