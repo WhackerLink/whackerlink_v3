@@ -211,8 +211,11 @@
 
         socket.on("send", function (data) {
             if (!inhibit) {
-                var audio = new Audio(data);
-                audio.play();
+                console.log(data.channel);
+                if (data.rid.toString() === "<%=rid%>" && data.channel === "<%=selected_channel%>") {
+                    var audio = new Audio(data.newData);
+                    audio.play();
+                }
             }
         });
         socket.on("VOICE_CHANNEL_GRANT", function (data) {

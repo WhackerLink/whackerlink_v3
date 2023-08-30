@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Whackerlink 3.0</title>
+    <link rel="stylesheet" href="/files/css/index.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.1.2/socket.io.js" integrity="sha512-iZIBSs+gDyTH0ZhUem9eQ1t4DcEn2B9lHxfRMeGQhyNdSUz+rb+5A3ummX6DQTOIs1XK0gOteOg/LPtSo9VJ+w==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+</head>
+<body>
+<button onclick="radioPowerOn()">Start audio whacker stuff (Temporary but must click first)</button>
+<div id="radioContainer" style="text-align: center;"></div>
+<script>
+    function radioPowerOn() {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    }
+
+    var socket = io();
+
+    function createRadioInstance(channelData) {
+        let voice_channel_granted = false;
+        let denied = false;
+        let reg_deny = false;
+        let inhibit = true;
+        let transmitting = false
+        let voiceChannelRequested = false;
+        let voiceChannelReleased = false;
+        const { channel, zone, rid, mode } = channelData;
+        const userStatus = {
+            microphone: false,
+            mute: false,
+            username:  rid,
+            online: false,
+            channel: channel
+        };
+        socket.emit("userInformation", userStatus);
+
+        const channelName = channel.replace(/\s+/g, "_");
+        const radioDiv = document.createElement("div");
+        radioDiv.className = "container";
+        radioDiv.innerHTML = `
+                <img class="image" src="/files/images/apx6k.png" alt="radio">
+                <div id="line1_${channelName}" class="line1">${zone}</div>
+                <div id="line2_${channelName}" class="line2">${channel}</div>
+                <div id="menu2_${channelName}" class="menu2">Page</div>
+                <div id="menu3_${channelName}" class="menu3">Batt</div>
+                <div id="line3_${channelName}" class="line3"></div>
+                <div id="menu1_${channelName}" class="menu1">Zone</div>
+                <button class="pwr_button" onclick="radioPowerOn('${channel}', ${rid}, '${channelName}')">PW</button>
+                <button class="emerg_button" onclick="send_emerg('${channel}', ${rid}, '${channelName}')">EM</button>
+                <button class="PTT" onmousedown="request_voice_channel('${channel}', ${rid}, '${channelName}')" onmouseup="release_voice_channel('${channel}', ${rid}, '${channelName}')">PTTTT</button>
+            `;
+
+        document.getElementById("radioContainer").appendChild(radioDiv);
+        toggleConnection(this)
+
+        navigator.mediaDevices.getUserMedia({ audio: true }).then((stream) => {
+            let mediaRecorderOptions;
+            if (mode === "digital"){
+                mediaRecorderOptions = {
+                    audioBitsPerSecond: 7200,
+                    bitDepth: 2,
+                    channels: 1
+                };
+            } else {
+                mediaRecorderOptions = {
+                    audioBitsPerSecond: 44100,
+                    bitDepth: 16,
+                    channels: 1
+                };
+            }
+            var mediaRecorder = new MediaRecorder(stream, mediaRecorderOptions);
+            mediaRecorder.start();
+
+            var audioChunks = [];
+
+            mediaRecorder.addEventListener("dataavailable", function (event) {
+                audioChunks.push(event.data);
+            });
+
+            mediaRecorder.addEventListener("stop", function () {
+                var audioBlob = new Blob(audioChunks);
+
+                audioChunks = [];
+
+                var fileReader = new FileReader();
+                fileReader.readAsDataURL(audioBlob);
+                fileReader.onloadend = function () {
+                    if (!userStatus.microphone || !userStatus.online || !voice_channel_granted) return;
+                    var base64String = fileReader.result;
+                    socket.emit("voice", base64String);
+                };
+
+                mediaRecorder.start();
+
+
+                setTimeout(function () {
+                    mediaRecorder.stop();
+                }, 1000);
+            });
+
+            setTimeout(function () {
+                mediaRecorder.stop();
+            }, 1000);
+        });
+        socket.on("send", function (data) {
+            console.log(data.channel);
+
+            if (data.rid.toString() === rid.toString() && data.channel === channel) {
+                var audio = new Audio(data.newData);
+                audio.play();
+            }
+        });
+        socket.on("VOICE_CHANNEL_GRANT", function handleVoiceChannelGrant(data) {
+            const channelName = data.channel.replace(/\s+/g, "_");
+
+            if (data.channel === channel && data.rid.toString() === rid.toString()) {
+                tpt_generate();
+                userStatus.microphone = !userStatus.microphone;
+                emitUserInformation();
+                voice_channel_granted = true;
+                denied = false;
+            } else if(data.channel === channel) {
+                updateTextContent("3", `ID: ${data.rid}`, channelName)
+            }
+        });
+        socket.on("VOICE_CHANNEL_RELEASE", function (data){
+            const channelName = data.channel.replace(/\s+/g, "_");
+            if (data.rid.toString() === rid.toString() && data.channel === channel) {
+                voice_channel_granted = false;
+                userStatus.microphone = !userStatus.microphone;
+                emitUserInformation();
+                denied = false;
+            } else if(data.channel === channel){
+                setTimeout(function (){
+                    updateTextContent("3", '', channelName)
+                }, 1500)
+            }
+        });
+        socket.on("VOICE_CHANNEL_DENY", function (data){
+            const channelName = data.channel.replace(/\s+/g, "_");
+            denied = true
+            if (data.rid.toString() === rid.toString() && data.channel === channel) {
+                bonk();
+                setTimeout(function (){
+                    voiceChannelRequested = false;
+                    voiceChannelReleased = false;
+                }, 1500);
+            }
+        });
+        socket.on("EMERGENCY_CALL", function (data){
+            const channelName = data.channel.replace(/\s+/g, "_");
+            if (data.channel === channel){
+                emergency_tone_generate();
+                updateTextContent("3", `EMERGENCY:<br />${data.rid}`,channelName)
+                setTimeout(function (){
+                    updateTextContent("3", '')
+                }, 3500)
+            }
+        });
+        function toggleConnection(e) {
+            userStatus.online = !userStatus.online;
+            emitUserInformation();
+        }
+        function emitUserInformation() {
+            socket.emit("userInformation", userStatus);
+        }
+    }
+    function updateTextContent(line, newText, instance) {
+        const element = document.getElementById(`line${line}_${instance}`);
+        element.innerHTML = newText;
+    }
+    function send_emerg(channel, rid){
+        socket.emit("EMERGENCY_CALL", {"rid": rid, "channel": channel});
+    }
+    function request_voice_channel(channel, rid) {
+        socket.emit("VOICE_CHANNEL_REQUEST", {"rid": rid, "channel": channel})
+    }
+    function release_voice_channel(channel, rid) {
+        socket.emit("RELEASE_VOICE_CHANNEL", {"rid":  rid ,"channel": channel});
+        voiceChannelRequested = false;
+        voiceChannelReleased = false;
+    }
+    function beep(frequency, duration, volume, type) {
+        var oscillator = audioCtx.createOscillator();
+        var gainNode = audioCtx.createGain();
+
+        oscillator.connect(gainNode);
+        gainNode.connect(audioCtx.destination);
+        vol = 1;
+        gainNode.gain.value = vol;
+        oscillator.frequency.value = frequency;
+        oscillator.type = type;
+
+        oscillator.start();
+
+        setTimeout(
+            function () {
+                oscillator.stop();
+            },
+            duration
+        );
+    }
+    function tpt_generate(){
+        beep(910, 30, 20, 'sine');
+        setTimeout(function () {
+            beep(0, 20, 20, 'sine');
+        }, 30);
+        setTimeout(function () {
+            beep(910, 30, 20, 'sine');
+        }, 50);
+        setTimeout(function () {
+            beep(0, 20, 20, 'sine');
+        }, 80);
+        setTimeout(function () {
+            beep(910, 50, 20, 'sine');
+        }, 100);
+    }
+    function emergency_tone_generate(){
+        beep(610, 500, 20, 'sine');
+        setTimeout(function () {
+            beep(910, 500, 20, 'sine');
+        }, 500);
+        setTimeout(function () {
+            beep(610, 500, 20, 'sine');
+        }, 1000);
+        setTimeout(function () {
+            beep(910, 500, 20, 'sine');
+        }, 1500);
+    }
+    function bonk(){
+        beep(310, 1000, 5, 'sine');
+    }
+
+    let zoneData = JSON.parse('<%- JSON.stringify(zoneData) %>');
+
+    zoneData.forEach(zoneInfo => {
+        let zone = zoneInfo.zone;
+        let content = zoneInfo.content;
+
+        content.forEach(channelInfo => {
+            console.log(channelInfo);
+            let [channel, mode] = channelInfo;
+            console.log(`CHAN: ${channel}`);
+            console.log(`ZONE: ${zone}`);
+            console.log(`MODE: ${mode}`);
+            createRadioInstance({ channel, zone, "rid": "1001", mode });
+        });
+    });
+</script>
+</body>
+</html>
