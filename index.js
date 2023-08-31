@@ -290,7 +290,6 @@ try {
         socket.on("RELEASE_VOICE_CHANNEL", function (data){
             data.stamp = getDaTime();
             console.log(`RELEASE_VOICE_CHANNEL FROM: ${data.rid} TO: ${data.channel}`);
-            sendDiscord(`Voice Transmission from ${data.rid} on ${data.channel}`);
 
             io.emit("VOICE_CHANNEL_RELEASE", data);
             grantedRids[data.rid] = false;

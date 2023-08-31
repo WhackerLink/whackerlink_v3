@@ -323,7 +323,7 @@
         }
     }
     function release_voice_channel(e) {
-        if (!denied && !inhibit) {
+        if (!denied && !inhibit && !reg_deny) {
             socket.emit("RELEASE_VOICE_CHANNEL", {"rid": "<%= rid %>", "channel": "<%= selected_channel %>"})
             voiceChannelRequested = false;
             voiceChannelReleased = false;
