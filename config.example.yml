@@ -13,6 +13,7 @@ configuration:
   grantDenyOccurrence: 5 #How often people will get random grant denys. Higher the number less often. Lowest number is 3.
   discordWebHookEnable: false #Enable discord functions
   discordWebHookUrl: '' #Webhook URL
+  httpsEnable: true #Do not change unless going through a proxy. This will NOT work unless it is https
 
 peer: #Currently WIP no need to touch
   externalPeerEnable: false #Enable external software peering

@@ -9,25 +9,6 @@ import yaml from "js-yaml";
 import {google} from 'googleapis';
 import * as https from "https";
 
-const useHttps = true;
-
-const httpApp = express();
-const httpServer = http.createServer(httpApp);
-const httpIo = new SocketIOServer(httpServer);
-
-const httpsOptions = {
-    key: fs.readFileSync('./ssl/server.key'),
-    cert: fs.readFileSync('./ssl/server.cert')
-};
-
-const httpsApp = express();
-const httpsServer = https.createServer(httpsOptions, httpsApp);
-const httpsIo = new SocketIOServer(httpsServer);
-
-const app = useHttps ? httpsApp : httpApp;
-const server = useHttps ? httpsServer : httpServer;
-const io = useHttps ? httpsIo : httpIo;
-
 const socketsStatus = {};
 const grantedChannels = {};
 const grantedRids = {};
@@ -56,6 +37,8 @@ try {
     const grantDenyOccurrence = config.configuration.grantDenyOccurrence;
     const enableDiscord = config.configuration.discordWebHookEnable;
     const discordWebHookUrl = config.configuration.discordWebHookUrl;
+    const useHttps = config.configuration.httpsEnable || false;
+
     // const rconUsername = config.peer.username;
     // const rconPassword = config.peer.password;
     // const rconRid = config.peer.rid;
@@ -64,6 +47,7 @@ try {
     // const rconEnable = config.peer.rconEnable;
 
     console.log('Network Name:', networkName);
+    console.log('HTTPS Enable:', useHttps);
     console.log('Network Bind Address:', networkBindAddress);
     console.log('Network Bind Port:', networkBindPort);
     console.log('Full Path:', fullPath);
@@ -83,6 +67,23 @@ try {
     // console.log('Channel:', channel);
     // console.log('Meta Data:', metaData);
     // console.log('RCON Enable:', rconEnable);
+
+    const httpApp = express();
+    const httpServer = http.createServer(httpApp);
+    const httpIo = new SocketIOServer(httpServer);
+
+    const httpsOptions = {
+        key: fs.readFileSync('./ssl/server.key'),
+        cert: fs.readFileSync('./ssl/server.cert')
+    };
+
+    const httpsApp = express();
+    const httpsServer = https.createServer(httpsOptions, httpsApp);
+    const httpsIo = new SocketIOServer(httpsServer);
+
+    const app = useHttps ? httpsApp : httpApp;
+    const server = useHttps ? httpsServer : httpServer;
+    const io = useHttps ? httpsIo : httpIo;
 
     const googleSheetClient = await getGoogleSheetClient();
 
