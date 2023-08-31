@@ -7,10 +7,26 @@ import axios from 'axios';
 import fs from "fs";
 import yaml from "js-yaml";
 import {google} from 'googleapis';
+import * as https from "https";
 
-const app = express();
-const httpServer = http.createServer(app);
-const io = new SocketIOServer(httpServer);
+const useHttps = true;
+
+const httpApp = express();
+const httpServer = http.createServer(httpApp);
+const httpIo = new SocketIOServer(httpServer);
+
+const httpsOptions = {
+    key: fs.readFileSync('./ssl/server.key'),
+    cert: fs.readFileSync('./ssl/server.cert')
+};
+
+const httpsApp = express();
+const httpsServer = https.createServer(httpsOptions, httpsApp);
+const httpsIo = new SocketIOServer(httpsServer);
+
+const app = useHttps ? httpsApp : httpApp;
+const server = useHttps ? httpsServer : httpServer;
+const io = useHttps ? httpsIo : httpIo;
 
 const socketsStatus = {};
 const grantedChannels = {};
@@ -455,8 +471,9 @@ try {
         });
     }
 
-    httpServer.listen(networkBindPort, networkBindAddress, () => {
-        console.log(`${networkName} is running on ${networkBindAddress}:${networkBindPort}`);
+    server.listen(networkBindPort, networkBindAddress, () => {
+        const protocol = useHttps ? 'https' : 'http';
+        console.log(`${networkName} is running on ${protocol}://${networkBindAddress}:${networkBindPort}`);
     });
 
 } catch (error) {
