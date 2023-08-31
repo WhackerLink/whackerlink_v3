@@ -315,9 +315,7 @@
         if (reg_deny && !inhibit){
             bonk();
         } else {
-            if (inhibit) {
-
-            } else {
+            if (!inhibit) {
                 socket.emit("VOICE_CHANNEL_REQUEST", {"rid": "<%= rid %>", "channel": "<%= selected_channel %>"})
             }
         }
