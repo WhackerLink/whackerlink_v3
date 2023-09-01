@@ -37,9 +37,9 @@ try {
     const grantDenyOccurrence = config.configuration.grantDenyOccurrence;
     const enableDiscord = config.configuration.discordWebHookEnable;
     const discordWebHookUrl = config.configuration.discordWebHookUrl;
-    const discordVoiceG = config.configuration.voiceGrant;
-    const discordVoiceR = config.configuration.voiceRequest;
-    const discordAffG = config.configuration.affiliationGrant;
+    const discordVoiceG = config.discord.voiceGrant;
+    const discordVoiceR = config.discord.voiceRequest;
+    const discordAffG = config.discord.affiliationGrant;
     const discordAffR = config.discord.affiliationRequest;
     const discordRegG = config.discord.regGrant;
     const discordRegR = config.discord.regRequest;
