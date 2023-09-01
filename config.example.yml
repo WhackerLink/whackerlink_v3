@@ -33,6 +33,7 @@ discord:
   regGrant: true
   regRequest: true
   regDeny: true
+  regRefuse: true
   page: true
   inhibit: true
   emergencyCall: true

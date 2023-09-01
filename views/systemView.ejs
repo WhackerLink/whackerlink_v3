@@ -186,5 +186,33 @@
         var textColorClass = "text-white";
         helper.addMessage("RID Uninhibit ACK", rid, channel, bgColorClass, textColorClass, "N/A");
     });
+    socket.on('PAGE_RID', function (msg) {
+        var rid = msg.rid;
+        var channel = msg.channel;
+        var bgColorClass = "bg-primary";
+        var textColorClass = "text-white";
+        helper.addMessage("Page", rid, channel, bgColorClass, textColorClass, "N/A");
+    });
+    socket.on('PAGE_RID_ACK', function (msg) {
+        var rid = msg.rid;
+        var channel = msg.channel;
+        var bgColorClass = "bg-success";
+        var textColorClass = "text-white";
+        helper.addMessage("Page ACK", rid, channel, bgColorClass, textColorClass, "N/A");
+    });
+    socket.on('PAGE_RID', function (msg) {
+        var rid = msg.rid;
+        var channel = msg.channel;
+        var bgColorClass = "bg-primary";
+        var textColorClass = "text-white";
+        helper.addMessage("Page", rid, channel, bgColorClass, textColorClass, "N/A");
+    });
+    socket.on('REG_REFUSE', function (msg) {
+        var rid = msg.rid;
+        var channel = msg.channel;
+        var bgColorClass = "bg-danger";
+        var textColorClass = "text-white";
+        helper.addMessage("REG Refuse", rid, channel, bgColorClass, textColorClass, "N/A");
+    });
 </script>
 </body>

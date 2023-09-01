@@ -82,7 +82,7 @@
                     changeMenuName("3", "Batt");
                     inhibit = false;
                     setTimeout(function () {
-                        updateTextContent("3", "REG DENIED");
+                        updateTextContent("3", "SYS REG DENIED");
                         reg_deny = true
                         setInterval(function () {
                             bonk();
@@ -90,6 +90,23 @@
                     }, 2500);
                 }
             });
+        socket.once("REG_REFUSE", function (data) {
+            if (data === "<%= rid %>") {
+                updateTextContent("1", "Zone A");
+                updateTextContent("2", `${userStatus.channel}`)
+                changeMenuName("1", "Zone");
+                changeMenuName("2", "Page");
+                changeMenuName("3", "Batt");
+                inhibit = false;
+                setTimeout(function () {
+                    updateTextContent("3", "SYS REG REFUSE");
+                    reg_deny = true
+                    setInterval(function () {
+                        bonk();
+                    }, 7500)
+                }, 2500);
+            }
+        });
 
         // };
     }

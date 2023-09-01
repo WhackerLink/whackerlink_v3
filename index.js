@@ -13,6 +13,7 @@ const socketsStatus = {};
 const grantedChannels = {};
 const grantedRids = {};
 const affiliations = [];
+let regDenyCount = {};
 
 const configFilePathIndex = process.argv.indexOf('-c');
 if (configFilePathIndex === -1 || process.argv.length <= configFilePathIndex + 1) {
@@ -44,6 +45,7 @@ try {
     const discordRegG = config.discord.regGrant;
     const discordRegR = config.discord.regRequest;
     const discordRegD = config.discord.regDeny;
+    const discordRegRfs = config.discord.regRefuse;
     const discordPage = config.discord.page;
     const discordInhibit = config.discord.inhibit;
     const discordEmerg = config.discord.emergencyCall;
@@ -435,37 +437,52 @@ try {
 
         socket.on("REG_REQUEST", async function (rid){
             io.emit("REG_REQUEST", rid);
-            if (enableDiscord && discordRegR) {
-                sendDiscord(`Reg Request from: ${rid}`);
-            }
             String.prototype.isNumber = function(){return /^\d+$/.test(this);}
             let ridAcl = await readGoogleSheet(googleSheetClient, sheetId, "rid_acl", "A:B");
             const matchingEntry = ridAcl.find(entry => entry[0] === rid);
+            const denyCount = regDenyCount[rid] || 0;
+            if (enableDiscord && discordRegR){
+                sendDiscord(`Reg Request: ${rid}`);
+            }
             setTimeout(function (){
                 if (rid.isNumber()) {
                     if (matchingEntry) {
                         const inhibit = matchingEntry[1];
                         if (inhibit === '1') {
+                            if (enableDiscord && discordRegG){
+                                sendDiscord(`Reg grant: ${rid}`);
+                            }
                             io.emit("REG_GRANTED", rid);
                             console.log("REG_GRANTED: " + rid);
-                            if (enableDiscord && discordRegR) {
-                                sendDiscord(`Reg Grant to: ${rid}`);
-                            }
                         } else {
                             io.emit("RID_INHIBIT", {channel: rid, rid: "999999999"});
                         }
                     } else {
-                        io.emit("REG_DENIED", rid);
-                        console.log("REG_DENIED: " + rid);
-                        if (enableDiscord && discordRegD) {
-                            sendDiscord(`Reg Deny to: ${rid}`);
+                        if (denyCount >= 3){
+                            if (enableDiscord && discordRegRfs){
+                                sendDiscord(`Reg refuse: ${rid}`);
+                            }
+                            io.emit("REG_REFUSE", rid);
+                        } else {
+                            if (enableDiscord && discordRegD){
+                                sendDiscord(`Reg deny: ${rid}`);
+                            }
+                            io.emit("REG_DENIED", rid);
+                            regDenyCount[rid] = denyCount + 1;
                         }
                     }
                 } else {
-                    io.emit("REG_DENIED", rid);
-                    console.log("REG_DENIED: " + rid);
-                    if (enableDiscord && discordRegD) {
-                        sendDiscord(`Reg Deny to: ${rid}`);
+                    if (denyCount >= 3){
+                        if (enableDiscord && discordRegRfs){
+                            sendDiscord(`Reg refuse: ${rid}`);
+                        }
+                        io.emit("REG_REFUSE", rid);
+                    } else {
+                        if (enableDiscord && discordRegD){
+                            sendDiscord(`Reg deny: ${rid}`);
+                        }
+                        io.emit("REG_DENIED", rid);
+                        regDenyCount[rid] = denyCount + 1;
                     }
                 }
             }, 1500);
