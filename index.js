@@ -117,6 +117,9 @@ try {
 
     app.set("view engine", "ejs");
     app.use("/files", express.static("public"));
+    /*
+        User interface routes
+     */
     app.get("/" , async (req , res)=>{
         try {
             const sheetTabs = await getSheetTabs(googleSheetClient, sheetId);
@@ -188,7 +191,18 @@ try {
             res.status(500).send("Error fetching sheet data");
         }
     });
-
+    /*
+        API routes
+     */
+    app.get("/api/affs", (req, res)=>{
+        const affiliationsJSON = affiliations.map((aff) => {
+            return {
+                rid: aff.rid,
+                channel: aff.channel
+            };
+        });
+        res.json(JSON.stringify(affiliationsJSON));
+    });
 
     async function sendDiscord(message) {
         const webhookUrl = discordWebHookUrl;
