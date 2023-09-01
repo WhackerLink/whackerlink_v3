@@ -22,3 +22,16 @@ peer: #Currently WIP no need to touch
   channel: 'Main'
   metaData: true #Pass pages, emergency, etc
   rconEnable: true #Allow RCON functions from the peer
+
+discord:
+  voiceGrant: true
+  voiceRequest: true
+  voiceDeny: true
+  affiliationGrant: true
+  affiliationDeny: true
+  regGrant: true
+  regRequest: true
+  regDeny: true
+  page: true
+  inhibit: true
+  emergencyCall: true

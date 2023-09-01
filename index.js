@@ -9,7 +9,7 @@ import yaml from "js-yaml";
 import {google} from 'googleapis';
 import * as https from "https";
 
-const useHttps = true;
+const useHttps = false;
 
 const httpApp = express();
 const httpServer = http.createServer(httpApp);
@@ -56,6 +56,18 @@ try {
     const grantDenyOccurrence = config.configuration.grantDenyOccurrence;
     const enableDiscord = config.configuration.discordWebHookEnable;
     const discordWebHookUrl = config.configuration.discordWebHookUrl;
+    const discordVoiceG = config.configuration.voiceGrant;
+    const discordVoiceR = config.configuration.voiceRequest;
+    const discordAffG = config.configuration.affiliationGrant;
+    const discordAffR = config.discord.affiliationRequest;
+    const discordRegG = config.discord.regGrant;
+    const discordRegR = config.discord.regRequest;
+    const discordRegD = config.discord.regDeny;
+    const discordPage = config.discord.page;
+    const discordInhibit = config.discord.inhibit;
+    const discordEmerg = config.discord.emergencyCall;
+    const discordVoiceD = config.discord.emergencyCall;
+
     // const rconUsername = config.peer.username;
     // const rconPassword = config.peer.password;
     // const rconRid = config.peer.rid;
@@ -216,7 +228,9 @@ try {
         data.stamp = getDaTime();
         io.emit("VOICE_CHANNEL_GRANT", data);
         console.log(`FORCED VOICE_CHANNEL_GRANT GIVEN TO: ${data.rid} ON: ${data.channel}`);
-        sendDiscord(`Voice Transmission from ${data.rid} on ${data.channel}`);
+        if (enableDiscord && discordVoiceG) {
+            sendDiscord(`Voice Transmission from ${data.rid} on ${data.channel}`);
+        }
         grantedChannels[data.channel] = true;
         grantedRids[data.rid] = true;
     }
@@ -252,6 +266,9 @@ try {
             console.log(`VOICE_CHANNEL_REQUEST FROM: ${data.rid} TO: ${data.channel}`);
             const cdtDateTime = getDaTime();
             data.stamp = cdtDateTime;
+            if (enableDiscord && discordVoiceR) {
+                sendDiscord(`Voice Request from ${data.rid} on ${data.channel} at ${data.stamp}`);
+            }
             io.emit("VOICE_CHANNEL_REQUEST", data);
             setTimeout(function (){
                 let integerNumber = parseInt(data.rid);
@@ -274,13 +291,18 @@ try {
                     data.stamp = cdtDateTime;
                     io.emit("VOICE_CHANNEL_GRANT", data);
                     console.log(`VOICE_CHANNEL_GRANT GIVEN TO: ${data.rid} ON: ${data.channel}`);
-                    sendDiscord(`Voice Transmission from ${data.rid} on ${data.channel}`);
+                    if (enableDiscord && discordVoiceG) {
+                        sendDiscord(`Voice Transmission from ${data.rid} on ${data.channel} at ${data.stamp}`);
+                    }
                     grantedChannels[data.channel] = true;
                     grantedRids[data.rid] = true;
                 } else {
                     data.stamp = cdtDateTime;
                     io.emit("VOICE_CHANNEL_DENY", data);
                     console.log(`VOICE_CHANNEL_DENY GIVEN TO: ${data.rid} ON: ${data.channel}`);
+                    if (enableDiscord && discordVoiceD) {
+                        sendDiscord(`Voice Deny from ${data.rid} on ${data.channel} at ${data.stamp}`);
+                    }
                     grantedChannels[data.channel] = false;
                 }
 
@@ -290,7 +312,6 @@ try {
         socket.on("RELEASE_VOICE_CHANNEL", function (data){
             data.stamp = getDaTime();
             console.log(`RELEASE_VOICE_CHANNEL FROM: ${data.rid} TO: ${data.channel}`);
-
             io.emit("VOICE_CHANNEL_RELEASE", data);
             grantedRids[data.rid] = false;
             grantedChannels[data.channel] = false;
@@ -306,8 +327,14 @@ try {
         socket.on("CHANNEL_AFFILIATION_REQUEST", function (data){
             data.stamp = getDaTime();
             io.emit("CHANNEL_AFFILIATION_REQUEST", data);
+            if (enableDiscord && discordAffR) {
+                sendDiscord(`Affiliation Grant to ${data.rid} on ${data.channel} at ${data.stamp}`);
+            }
             setTimeout(function (){
                 io.emit("CHANNEL_AFFILIATION_GRANTED", data);
+                if (enableDiscord && discordAffG) {
+                    sendDiscord(`Affiliation Grant to ${data.rid} on ${data.channel} at ${data.stamp}`);
+                }
                 if (!getAffiliation(data.rid)){
                     console.log("AFFILIATION GRANTED TO: " + data.rid + " ON: " + data.channel);
                     addAffiliation(data.rid, data.channel, data.stamp = getDaTime());
@@ -326,12 +353,18 @@ try {
         });
 
         socket.on("EMERGENCY_CALL", function (data){
+            if (enableDiscord && discordEmerg) {
+                sendDiscord(`Affiliation Grant to ${data.rid} on ${data.channel} at ${data.stamp}`);
+            }
             data.stamp = getDaTime();
             console.log("EMERGENCY_CALL FROM: " + data.rid + " ON: " + data.channel)
             io.emit("EMERGENCY_CALL", data);
         });
 
         socket.on("RID_INHIBIT", async function(data) {
+            if (enableDiscord && discordInhibit) {
+                sendDiscord(`Affiliation Grant to ${data.rid} on ${data.channel} at ${data.stamp}`);
+            }
             data.stamp = getDaTime();
             const ridToInhibit = data.channel;
             const ridAcl = await readGoogleSheet(googleSheetClient, sheetId, "rid_acl", "A:B");
@@ -385,6 +418,9 @@ try {
 
         socket.on("REG_REQUEST", async function (rid){
             io.emit("REG_REQUEST", rid);
+            if (enableDiscord && discordRegR) {
+                sendDiscord(`Reg Request from: ${rid}`);
+            }
             String.prototype.isNumber = function(){return /^\d+$/.test(this);}
             let ridAcl = await readGoogleSheet(googleSheetClient, sheetId, "rid_acl", "A:B");
             const matchingEntry = ridAcl.find(entry => entry[0] === rid);
@@ -395,16 +431,25 @@ try {
                         if (inhibit === '1') {
                             io.emit("REG_GRANTED", rid);
                             console.log("REG_GRANTED: " + rid);
+                            if (enableDiscord && discordRegR) {
+                                sendDiscord(`Reg Grant to: ${rid}`);
+                            }
                         } else {
                             io.emit("RID_INHIBIT", {channel: rid, rid: "999999999"});
                         }
                     } else {
                         io.emit("REG_DENIED", rid);
                         console.log("REG_DENIED: " + rid);
+                        if (enableDiscord && discordRegD) {
+                            sendDiscord(`Reg Grant to: ${rid}`);
+                        }
                     }
                 } else {
                     io.emit("REG_DENIED", rid);
                     console.log("REG_DENIED: " + rid);
+                    if (enableDiscord && discordRegD) {
+                        sendDiscord(`Reg Grant to: ${rid}`);
+                    }
                 }
             }, 1500);
         });
