@@ -59,7 +59,7 @@
         });
             audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
-            socket.emit("REG_REQUEST", "<%= rid %>");
+            socket.emit("REG_REQUEST", "<%=rid%>");
             socket.once("REG_GRANTED", function (data) {
                 if (data === "<%= rid %>") {
                     updateTextContent("1", "<%=zone%>");

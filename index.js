@@ -9,7 +9,7 @@ import yaml from "js-yaml";
 import {google} from 'googleapis';
 import * as https from "https";
 
-    const useHttps = false;
+const useHttps = false;
 
 const httpApp = express();
 const httpServer = http.createServer(httpApp);
@@ -56,7 +56,7 @@ try {
     const grantDenyOccurrence = config.configuration.grantDenyOccurrence;
     const enableDiscord = config.configuration.discordWebHookEnable;
     const discordWebHookUrl = config.configuration.discordWebHookUrl;
-        const discordVoiceG = config.configuration.voiceGrant;
+    const discordVoiceG = config.configuration.voiceGrant;
     const discordVoiceR = config.configuration.voiceRequest;
     const discordAffG = config.configuration.affiliationGrant;
     const discordAffR = config.discord.affiliationRequest;
@@ -460,14 +460,14 @@ try {
                         io.emit("REG_DENIED", rid);
                         console.log("REG_DENIED: " + rid);
                         if (enableDiscord && discordRegD) {
-                            sendDiscord(`Reg Grant to: ${rid}`);
+                            sendDiscord(`Reg Deny to: ${rid}`);
                         }
                     }
                 } else {
                     io.emit("REG_DENIED", rid);
                     console.log("REG_DENIED: " + rid);
                     if (enableDiscord && discordRegD) {
-                        sendDiscord(`Reg Grant to: ${rid}`);
+                        sendDiscord(`Reg Deny to: ${rid}`);
                     }
                 }
             }, 1500);
