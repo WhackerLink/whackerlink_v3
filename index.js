@@ -9,25 +9,6 @@ import yaml from "js-yaml";
 import {google} from 'googleapis';
 import * as https from "https";
 
-const useHttps = false;
-
-const httpApp = express();
-const httpServer = http.createServer(httpApp);
-const httpIo = new SocketIOServer(httpServer);
-
-const httpsOptions = {
-    key: fs.readFileSync('./ssl/server.key'),
-    cert: fs.readFileSync('./ssl/server.cert')
-};
-
-const httpsApp = express();
-const httpsServer = https.createServer(httpsOptions, httpsApp);
-const httpsIo = new SocketIOServer(httpsServer);
-
-const app = useHttps ? httpsApp : httpApp;
-const server = useHttps ? httpsServer : httpServer;
-const io = useHttps ? httpsIo : httpIo;
-
 const socketsStatus = {};
 const grantedChannels = {};
 const grantedRids = {};
@@ -150,6 +131,23 @@ try {
     });
     app.get("/radio" , (req , res)=>{
         res.render("radio", {selected_channel: req.query.channel, rid: req.query.rid, mode: req.query.mode, zone: req.query.zone});
+    });
+    app.get("/unication" , (req , res)=>{
+        res.render("g5", {selected_channel: req.query.channel, rid: req.query.rid, mode: req.query.mode, zone: req.query.zone, networkName: networkName});
+    });
+    app.get("/g5" , async (req , res)=>{
+        try {
+            const sheetTabs = await getSheetTabs(googleSheetClient, sheetId);
+            const zoneData = [];
+            for (const tab of sheetTabs) {
+                const tabData = await readGoogleSheet(googleSheetClient, sheetId, tab, "A:B");
+                zoneData.push({ zone: tab, content: tabData });
+            }
+            res.render("uniLanding", {zoneData, networkName});
+        } catch (error) {
+            console.error("Error fetching sheet data:", error);
+            res.status(500).send("Error fetching sheet data");
+        }
     });
     app.get("/console", async (req, res) => {
         try {
@@ -382,7 +380,7 @@ try {
 
         socket.on("RID_INHIBIT", async function(data) {
             if (enableDiscord && discordInhibit) {
-                sendDiscord(`Affiliation Grant to ${data.rid} on ${data.channel} at ${data.stamp}`);
+                sendDiscord(`Inihbit sent to ${data.rid} on ${data.channel} at ${data.stamp}`);
             }
             data.stamp = getDaTime();
             const ridToInhibit = data.channel;
@@ -472,8 +470,19 @@ try {
                 }
             }, 1500);
         });
+        socket.on("RID_PAGE", function(data){
+            data.stamp = getDaTime();
+            io.emit("PAGE_RID", data);
+        });
+        socket.on("RID_PAGE_ACK", function(data){
+            data.stamp = getDaTime();
+            io.emit("PAGE_RID_ACK", data);
+        });
         socket.on("FORCE_VOICE_CHANNEL_GRANT", function(data){
             forceGrant(data);
+        });
+        socket.on("PEER_LOGIN_REQUEST", function(data){
+           //Future login handling for peers
         });
     });
 

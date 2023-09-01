@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Whackerlink 3.0</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.1.2/socket.io.js" integrity="sha512-iZIBSs+gDyTH0ZhUem9eQ1t4DcEn2B9lHxfRMeGQhyNdSUz+rb+5A3ummX6DQTOIs1XK0gOteOg/LPtSo9VJ+w==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+</head>
+<header>
+    <div class="controller">
+        <!--
+        <button class="control-btn disable-btn" onclick="toggleMute(this)">Mute</button>
+        -->
+    </div>
+
+</header>
+<body>
+
+
+
+</ul>
+
+<script>
+
+    //toggleConnection(this)
+    //toggleMute(this)
+    //toggleMicrophone(this)
+    const userStatus = {
+        microphone: false,
+        mute: false,
+        username: "01",
+        online: false,
+        channel: "<%=selected_channel%>"
+    };
+    let receiving = false;
+    let transmitting = false;
+    let current_channel = "<%=selected_channel%>";
+    let current_zone = "<%=zone%>";
+
+    function radioPowerOn()
+    {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        console.log("ON")
+        updateTextContent("1", current_zone);
+        updateTextContent("2", current_channel);
+        updateTextContent("3", `<%=networkName%>`);
+        setTimeout(function(){
+            mainFunction();
+        }, 2000);
+    }
+
+    var socket = io();
+    socket.emit("userInformation", userStatus);
+
+    function beep(frequency, duration, volume, type) {
+        var oscillator = audioCtx.createOscillator();
+        var gainNode = audioCtx.createGain();
+
+        oscillator.connect(gainNode);
+        gainNode.connect(audioCtx.destination);
+        vol = 1;
+        gainNode.gain.value = vol;
+        oscillator.frequency.value = frequency;
+        oscillator.type = type;
+
+        oscillator.start();
+
+        setTimeout(
+            function () {
+                oscillator.stop();
+            },
+            duration
+        );
+    }
+    function emergency_tone_generate(){
+        beep(610, 500, 20, 'sine');
+        setTimeout(function () {
+            beep(910, 500, 20, 'sine');
+        }, 500);
+        setTimeout(function () {
+            beep(610, 500, 20, 'sine');
+        }, 1000);
+        setTimeout(function () {
+            beep(910, 500, 20, 'sine');
+        }, 1500);
+    }
+    function mainFunction(time) {
+
+        toggleConnection(this)
+        let audio = new Audio('/files/audio/trunking_tg_priority.wav');
+        audio.play();
+        socket.on("send", function (data) {
+            if (data.channel === "<%=selected_channel%>") {
+                var audio = new Audio(data.newData);
+                audio.play();
+            }
+        });
+        socket.on("VOICE_CHANNEL_GRANT", function (data) {
+            if(data.channel === "<%=selected_channel%>") {
+                updateTextContent("1", `To:${data.channel}`);
+                updateTextContent("3", `Fm:[${data.rid}]`);
+                updateTextContent("2", '');
+            }
+        });
+        socket.on("VOICE_CHANNEL_RELEASE", function (data){
+            if(data.channel === "<%=selected_channel%>"){
+                setTimeout(function (){
+                    updateTextContent("1", current_zone);
+                    updateTextContent("2", current_channel);
+                    updateTextContent("3", `<%=networkName%>`);
+                }, 1500)
+            }
+        });
+        socket.on("VOICE_CHANNEL_DENY", function (data){
+            denied = true
+            if (data.rid === "<%=rid%>" && data.channel === "<%=selected_channel%>" && !inhibit) {
+                bonk();
+                setTimeout(function (){
+                    voiceChannelRequested = false;
+                    voiceChannelReleased = false;
+                }, 1500);
+            }
+        });
+        socket.on("EMERGENCY_CALL", function (data){
+            if (data.channel === "<%=selected_channel%>" && !inhibit){
+                emergency_tone_generate();
+                updateTextContent("3", `EM:<br />${data.rid}`)
+                setTimeout(function (){
+                    updateTextContent("3", '')
+                }, 3500)
+            }
+        });
+        socket.on("INFORMATION_ALERT", function (data){
+            if (data.channel === "<%=selected_channel%>") {
+                let audio = new Audio('/files/audio/info_tone.wav');
+                audio.play();
+            }
+        });
+        socket.on("CANCELLATION_ALERT", function (data){
+            if (data.channel === "<%=selected_channel%>") {
+                let audio = new Audio('/files/audio/cancel_tone.wav');
+                audio.play();
+            }
+        });
+        socket.on("PAGE_RID", function(data){
+            let page_rcv;
+            if (!inhibit && !reg_deny && data.channel === "<%=rid%>"){
+                page_rcv = true;
+                updateTextContent('3', `PAGE RCV:<br/>${data.rid}`);
+                setTimeout(function (){
+                    page_rcv = false;
+                    updateTextContent('3', '');
+                }, 3000);
+                socket.emit('RID_PAGE_ACK', data);
+            }
+        });
+    }
+
+    function toggleConnection(e) {
+        userStatus.online = !userStatus.online;
+        emitUserInformation();
+    }
+
+    function toggleMute(e) {
+        userStatus.mute = !userStatus.mute;
+        emitUserInformation();
+    }
+    function editButtonClass(target, bool) {
+        const classList = target.classList;
+        classList.remove("enable-btn");
+        classList.remove("disable-btn");
+
+        if (bool)
+            return classList.add("enable-btn");
+
+        classList.add("disable-btn");
+    }
+
+    function emitUserInformation() {
+        socket.emit("userInformation", userStatus);
+    }
+    function updateTextContent(line, newText) {
+        const element = document.getElementById(`line${line}`);
+        element.innerHTML = newText;
+    }
+    function changeMenuName(menu_number, text){
+        let thing = document.getElementById(`menu${menu_number}`);
+        thing.innerHTML = text;
+    }
+</script>
+<div style="text-align: center;">
+    <div class="container">
+        <img class="image" src="/files/images/g5.png" alt="radio">
+        <div id="line1" class="line1"></div>
+        <div id="line2" class="line2"></div>
+        <div id="line3" class="line3"></div>
+<!--        <div id="menu1" class="menu1"></div>-->
+<!--        <div id="menu2" class="menu2"></div>-->
+<!--        <div id="menu3" class="menu3"></div>-->
+        <button id="pwr_button" class="pwr_button" onclick="radioPowerOn()">PW</button>
+    </div>
+</div>
+
+<link rel="stylesheet" href="/files/css/g5.css">
+</body>
+</html>

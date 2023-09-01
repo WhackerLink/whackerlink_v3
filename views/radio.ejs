@@ -298,6 +298,18 @@
                 audio.play();
             }
         });
+        socket.on("PAGE_RID", function(data){
+            let page_rcv;
+            if (!inhibit && !reg_deny && data.channel === "<%=rid%>"){
+                page_rcv = true;
+                updateTextContent('3', `PAGE RCV:<br/>${data.rid}`);
+                setTimeout(function (){
+                    page_rcv = false;
+                    updateTextContent('3', '');
+                }, 3000);
+                socket.emit('RID_PAGE_ACK', data);
+            }
+        });
     }
 
     function toggleConnection(e) {
@@ -357,6 +369,9 @@
     function changeMenuName(menu_number, text){
         let thing = document.getElementById(`menu${menu_number}`);
         thing.innerHTML = text;
+    }
+    function sendPage(){
+        //TODO: Dont forget to add page to radio
     }
 </script>
 <div style="text-align: center;">
