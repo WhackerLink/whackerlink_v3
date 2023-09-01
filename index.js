@@ -9,7 +9,6 @@ import yaml from "js-yaml";
 import {google} from 'googleapis';
 import * as https from "https";
 
-<<<<<<< HEAD
     const useHttps = false;
 
 const httpApp = express();
@@ -29,8 +28,6 @@ const app = useHttps ? httpsApp : httpApp;
 const server = useHttps ? httpsServer : httpServer;
 const io = useHttps ? httpsIo : httpIo;
 
-=======
->>>>>>> 68b2777492ec1a3682b13df4288902a6a1dddc95
 const socketsStatus = {};
 const grantedChannels = {};
 const grantedRids = {};
@@ -59,7 +56,6 @@ try {
     const grantDenyOccurrence = config.configuration.grantDenyOccurrence;
     const enableDiscord = config.configuration.discordWebHookEnable;
     const discordWebHookUrl = config.configuration.discordWebHookUrl;
-    <<<<<<< HEAD
         const discordVoiceG = config.configuration.voiceGrant;
     const discordVoiceR = config.configuration.voiceRequest;
     const discordAffG = config.configuration.affiliationGrant;
@@ -71,9 +67,7 @@ try {
     const discordInhibit = config.discord.inhibit;
     const discordEmerg = config.discord.emergencyCall;
     const discordVoiceD = config.discord.emergencyCall;
-=======
     const useHttps = config.configuration.httpsEnable || false;
->>>>>>> 68b2777492ec1a3682b13df4288902a6a1dddc95
 
     // const rconUsername = config.peer.username;
     // const rconPassword = config.peer.password;
