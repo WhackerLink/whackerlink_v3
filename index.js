@@ -499,7 +499,7 @@ try {
             forceGrant(data);
         });
         socket.on("PEER_LOGIN_REQUEST", function(data){
-           //Future login handling for peers
+            //Future login handling for peers
         });
     });
 
