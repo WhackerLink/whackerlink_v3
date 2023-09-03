@@ -25,7 +25,7 @@ Clone whackerlink repository
 
 ### Set config files
 
-Setup the config files. Rename the `config.example.yml` file to `config.yml` and open it in notepad or your favorite editor. Also rename the `rcon_logins.example.yml` to `rcon_logins.yml`.
+Setup the config files. Rename the `config.example.yml` file to `config.yml` and open it in notepad or your favorite editor. Also rename the `rcon_logins.example.json` to `rcon_logins.json`.
 
 ### Finish config files
 
