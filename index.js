@@ -191,6 +191,20 @@ try {
             res.status(500).send("Error fetching sheet data");
         }
     });
+    app.get("/auto" , async (req , res)=>{
+        try {
+            const sheetTabs = await getSheetTabs(googleSheetClient, sheetId);
+            const zoneData = [];
+            for (const tab of sheetTabs) {
+                const tabData = await readGoogleSheet(googleSheetClient, sheetId, tab, "A:B");
+                zoneData.push({ zone: tab, content: tabData });
+            }
+            res.render("auto", {zoneData, networkName});
+        } catch (error) {
+            console.error("Error fetching sheet data:", error);
+            res.status(500).send("Error fetching sheet data");
+        }
+    });
     /*
         API routes
      */
@@ -439,6 +453,13 @@ try {
             setTimeout(function (){
                 io.emit("VOICE_CHANNEL_RELEASE", data);
             }, 1500);
+        });
+        socket.on("AUTO_DISPATCH_CHANNEL_BROADCAST", function(data){
+            io.emit("AUTO_DISPATCH_CHANNEL_BROADCAST", data);
+            forceGrant(data);
+            setTimeout(function (){
+                io.emit("VOICE_CHANNEL_RELEASE", data);
+            }, 8000);
         });
 
         socket.on("CANCELLATION_ALERT", function(data){

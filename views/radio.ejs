@@ -6,6 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Whackerlink 3.0</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.1.2/socket.io.js" integrity="sha512-iZIBSs+gDyTH0ZhUem9eQ1t4DcEn2B9lHxfRMeGQhyNdSUz+rb+5A3ummX6DQTOIs1XK0gOteOg/LPtSo9VJ+w==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script src="https://code.responsivevoice.org/responsivevoice.js?key=PekkZld1"></script>
 </head>
 <header>
     <div class="controller">
@@ -67,6 +68,9 @@
                     changeMenuName("1", "Zone");
                     changeMenuName("2", "Page");
                     changeMenuName("3", "Batt");
+                    setTimeout(()=>{
+                        responsiveVoice.speak("<%=selected_channel%>", `US English Female`,  {rate: .8});
+                    },1000);
 
                     mainFunction(1000);
                     reg_deny = false;
@@ -313,6 +317,11 @@
             if (data.channel === "<%=selected_channel%>") {
                 let audio = new Audio('/files/audio/cancel_tone.wav');
                 audio.play();
+            }
+        });
+        socket.on("AUTO_DISPATCH_CHANNEL_BROADCAST", function(data){
+            if (data.channel === "<%=selected_channel%>") {
+                responsiveVoice.speak(data.message, `US English Female`,  {rate: .8});
             }
         });
     }

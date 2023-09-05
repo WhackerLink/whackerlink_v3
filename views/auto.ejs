@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Whackerlink 3.0</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.1.2/socket.io.js" integrity="sha512-iZIBSs+gDyTH0ZhUem9eQ1t4DcEn2B9lHxfRMeGQhyNdSUz+rb+5A3ummX6DQTOIs1XK0gOteOg/LPtSo9VJ+w==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+</head>
+
+<body>
+<form id="form">
+    <div class="mb-3">
+        <label for="channel" class="form-label">Choose a channel:</label>
+        <select name="channel" id="channel" class="form-select">
+            <% for (const zone of zoneData) { %>
+                <optgroup label="<%= zone.zone %>">
+                    <% for (const content of zone.content) { %>
+                        <option value="<%= content[0] %>" data-zone="<%= zone.zone %>" data-mode="<%= content[1] %>"><%= content[0] %></option>
+                    <% } %>
+                </optgroup>
+            <% } %>
+        </select>
+        <label for="sound" class="form-label">Pre made alerts:</label>
+        <select name="sound" id="sound" class="form-select">
+            <option value="">None</option>
+            <option value="sys_test">System Wide Test</option>
+            <option value="channel_test">Channel Test</option>
+        </select>
+    </div>
+    <button type="button" onclick="sendInfo()">Send</button>
+
+</form>
+<script>
+
+    var socket = io();
+    const channelDropdown = document.getElementById('channel');
+    const sound = document.getElementById('sound');
+
+    function sendInfo(){
+        if (sound.value === "sys_test") {
+            socket.emit('INFORMATION_ALERT', {"rid": "999999999", "channel": channelDropdown.value});
+            setTimeout(()=>{
+                socket.emit('AUTO_DISPATCH_SYS_BROADCAST', {"rid": "999999998", "channel": channelDropdown.value, "message": `This is a test of the radio system`});
+            },3000);
+        } else if (sound.value === "channel_test"){
+            socket.emit('INFORMATION_ALERT', {"rid": "999999999", "channel": channelDropdown.value});
+            setTimeout(()=> {
+                socket.emit('AUTO_DISPATCH_CHANNEL_BROADCAST', {
+                    "rid": "999999998",
+                    "channel": channelDropdown.value,
+                    "message": `This is a test of the radio system`
+                });
+            }, 3000);
+        }
+    }
+</script>
+</body>
+</html>
