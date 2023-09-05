@@ -191,7 +191,7 @@ try {
             res.status(500).send("Error fetching sheet data");
         }
     });
-    app.get("/auto" , async (req , res)=>{
+    app.get("/auto" , auth, async (req , res)=>{
         try {
             const sheetTabs = await getSheetTabs(googleSheetClient, sheetId);
             const zoneData = [];
