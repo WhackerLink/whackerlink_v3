@@ -92,6 +92,9 @@
                             bonk();
                         }, 7500)
                     }, 2500);
+                    setTimeout(()=>{
+                        responsiveVoice.speak("<%=selected_channel%>", `US English Female`,  {rate: .8});
+                    },1000);
                 }
             });
         socket.once("REG_REFUSE", function (data) {
@@ -109,6 +112,9 @@
                         bonk();
                     }, 7500)
                 }, 2500);
+                setTimeout(()=>{
+                    responsiveVoice.speak("<%=selected_channel%>", `US English Female`,  {rate: .8});
+                },1000);
             }
         });
 
