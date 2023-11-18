@@ -623,9 +623,9 @@ try {
                             io.emit("REG_REFUSE", rid);
                         } else {
                             if (enableDiscord && discordRegD){
-                                sendDiscord(`Reg deny: ${rid}`);
+                                sendDiscord(`REG_REFUSE: ${rid}`);
                             }
-                            io.emit("REG_DENIED", rid);
+                            io.emit("REG_REFUSE", rid);
                             regDenyCount[rid] = denyCount + 1;
                         }
                     }
