@@ -67,8 +67,10 @@
             audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
             socket.emit("REG_REQUEST", "<%= rid %>");
+
             socket.once("REG_GRANTED", function (data) {
                 if (data === "<%= rid %>") {
+                    stopBlinking();
                     updateTextContent("1", "<%=zone%>");
                     updateTextContent("2", `${userStatus.dstId}`)
                     changeMenuName("1", "Zone");
@@ -85,6 +87,7 @@
             });
             socket.once("REG_DENIED", function (data) {
                 if (data === "<%= rid %>") {
+                    stopBlinking();
                     updateTextContent("1", "Zone A");
                     updateTextContent("2", `${userStatus.dstId}`)
                     changeMenuName("1", "Zone");
@@ -92,7 +95,7 @@
                     changeMenuName("3", "Batt");
                     inhibit = false;
                     setTimeout(function () {
-                        updateTextContent("3", "SYS REG DENIED");
+                        updateTextContent("3", "Sys reg denied");
                         reg_deny = true
                         setInterval(function () {
                             bonk();
@@ -105,6 +108,7 @@
             });
         socket.once("REG_REFUSE", function (data) {
             if (data === "<%= rid %>") {
+                stopBlinking();
                 updateTextContent("1", "Zone A");
                 updateTextContent("2", `${userStatus.dstId}`)
                 changeMenuName("1", "Zone");
@@ -198,8 +202,12 @@
 
     function mainFunction(time) {
         socket.emit('CHANNEL_AFFILIATION_REQUEST', {"srcId": "<%=rid%>", "dstId": "<%=selected_channel%>"})
-
-
+        startBlinking(500);
+        socket.on("CHANNEL_AFFILIATION_GRANTED", function (data){
+           if (data.srcId === "<%= rid %>"){
+               stopBlinking();
+           }
+        });
         toggleConnection(this)
 
         navigator.mediaDevices.getUserMedia({ audio: true }).then((stream) => {
@@ -270,6 +278,8 @@
             //console.log(data.dstId)
             if (data.srcId === "<%=rid%>" && data.dstId === "<%=selected_channel%>" && !inhibit) {
                 tpt_generate();
+                stopBlinking();
+                ledOn();
                 userStatus.microphone = !userStatus.microphone;
                 console.log("Switching to voice channel:", data.newChannel);
                 userStatus.voiceChannel = data.newChannel;
@@ -289,6 +299,7 @@
         socket.on("VOICE_CHANNEL_RELEASE", function (data){
             if (data.srcId === "<%=rid%>" && data.dstId === "<%=selected_channel%>" && !inhibit) {
                 voice_channel_granted = false;
+                ledOff();
                 userStatus.microphone = !userStatus.microphone;
                 userStatus.voiceChannel = "000.0000";
                 emitUserInformation();
@@ -305,6 +316,8 @@
             denied = true
             if (data.srcId === "<%=rid%>" && data.dstId === "<%=selected_channel%>" && !inhibit) {
                 bonk();
+                stopBlinking();
+                ledOff();
                 setTimeout(function (){
                     voiceChannelRequested = false;
                     voiceChannelReleased = false;
@@ -380,6 +393,7 @@
             bonk();
         } else {
             if (!inhibit) {
+                startBlinking(250);
                 socket.emit("VOICE_CHANNEL_REQUEST", {"srcId": "<%= rid %>", "dstId": "<%= selected_channel %>"})
             }
         }
@@ -389,6 +403,7 @@
             socket.emit("RELEASE_VOICE_CHANNEL", {"srcId": "<%= rid %>", "dstId": "<%= selected_channel %>"})
             voiceChannelRequested = false;
             voiceChannelReleased = false;
+            //document.getElementById("ptt_indicator").style.display = "none";
         } else {
             denied = false
         }
@@ -422,6 +437,28 @@
         let thing = document.getElementById(`menu${menu_number}`);
         thing.innerHTML = text;
     }
+
+    let blinkInterval;
+
+    function startBlinking(speed) {
+        blinkInterval = setInterval(function() {
+            var pttIndicator = document.getElementById("ptt_indicator");
+            pttIndicator.style.display = (pttIndicator.style.display == 'none' ? 'block' : 'none');
+        }, speed);
+    }
+
+    function stopBlinking() {
+        clearInterval(blinkInterval);
+        document.getElementById("ptt_indicator").style.display = 'none';
+    }
+
+    function ledOn(){
+        document.getElementById("ptt_indicator").style.display = 'block';
+    }
+
+    function ledOff(){
+        document.getElementById("ptt_indicator").style.display = 'none';
+    }
 </script>
 <div style="text-align: center;">
     <div class="container">
@@ -434,6 +471,7 @@
         <div id="menu3" class="menu3"></div>
         <button id="pwr_button" class="pwr_button" onclick="radioPowerOn()">PW</button>
         <button id="emerg_button" class="emerg_button" onclick="send_emerg()">EM</button>
+        <div id="ptt_indicator" class="ptt_indicator"></div>
         <button id="PTT" class="PTT" onmousedown="request_voice_channel(this)" onmouseup="release_voice_channel(this)" >PTTTT</button>
     </div>
 </div>

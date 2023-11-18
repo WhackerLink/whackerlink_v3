@@ -464,7 +464,7 @@ try {
                     console.log(`VOICE_CHANNEL_DENY GIVEN TO: ${data.srcId} ON: ${data.dstId}`);
                     console.log(data.srcId, ": Not aff'ed to :", data.dstId);
                 }
-            }, 100);
+            }, 750);
         });
 
         socket.on("RELEASE_VOICE_CHANNEL", function (data){
