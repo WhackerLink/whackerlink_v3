@@ -381,6 +381,7 @@ try {
         });
 
         socket.on("voice", function (data) {
+            console.log(data)
             var newData = data.split(";");
             newData[0] = "data:audio/wav;";
             newData = newData.join(";");
@@ -462,7 +463,7 @@ try {
                 } else {
                     io.emit("VOICE_CHANNEL_DENY", data);
                     console.log(`VOICE_CHANNEL_DENY GIVEN TO: ${data.srcId} ON: ${data.dstId}`);
-                    console.log(data.srcId, ": Not aff'ed to :", data.dstId);
+                    console.log(data.srcId, "Non affiliated voice request not permitted for ", data.dstId);
                 }
             }, 750);
         });

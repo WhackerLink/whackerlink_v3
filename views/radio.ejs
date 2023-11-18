@@ -327,7 +327,7 @@
         socket.on("EMERGENCY_CALL", function (data){
              if (data.dstId === "<%=selected_channel%>" && !inhibit){
                  emergency_tone_generate();
-                 updateTextContent("3", `EMERGENCY:<br />${data.srcId}`)
+                 updateTextContent("3", `EM:<br />${data.srcId}`)
                  setTimeout(function (){
                      updateTextContent("3", '')
                  }, 3500)
