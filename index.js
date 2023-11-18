@@ -381,7 +381,6 @@ try {
         });
 
         socket.on("voice", function (data) {
-            console.log(data)
             var newData = data.split(";");
             newData[0] = "data:audio/wav;";
             newData = newData.join(";");
