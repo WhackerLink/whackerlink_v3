@@ -2,252 +2,130 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Whackerlink 3.0</title>
-    <link rel="stylesheet" href="/files/css/index.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.1.2/socket.io.js" integrity="sha512-iZIBSs+gDyTH0ZhUem9eQ1t4DcEn2B9lHxfRMeGQhyNdSUz+rb+5A3ummX6DQTOIs1XK0gOteOg/LPtSo9VJ+w==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <title>Dispatch Console</title>
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.1.2/socket.io.js" crossorigin="anonymous"></script>
+    <style>
+        .channel-card { cursor: pointer; margin-bottom: 1rem; }
+        .channel-card.online { background-color: #28a745; /* Green */ }
+        .channel-card.offline { background-color: #dc3545; /* Red */ }
+        .channel-card .card-body { transition: background-color 0.5s; }
+    </style>
 </head>
 <body>
-<button onclick="radioPowerOn()">Start audio whacker stuff (Temporary but must click first)</button>
-<div id="radioContainer" style="text-align: center;"></div>
+<div class="container">
+    <h1>WL Console - DOES NOT WORK YET; WIP - <%= networkName %></h1>
+    <div id="channelsContainer" class="row"></div>
+</div>
+
 <script>
-    function radioPowerOn() {
-        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const socket = io();
+    let activeVoiceChannels = {};
+    let rid = '<%= rid %>';
+
+    <% zoneData.forEach(zone => {
+    zone.content.forEach(channelInfo => { %>
+    createChannelCard({
+        channel: "<%= channelInfo[0] %>",
+        mode: "<%= channelInfo[1] %>",
+        rid: rid
+    });
+    <% });
+    }); %>
+
+    function createChannelCard(channelData) {
+        const { channel, mode, rid } = channelData;
+        const channelElement = document.createElement('div');
+        channelElement.classList.add('channel-card', 'col-md-4', 'offline');
+        channelElement.innerHTML = `
+            <div class="card mb-4 shadow-sm">
+                <div class="card-body">
+                    <h5 class="card-title">${channel}</h5>
+                    <p class="status">OFF</p>
+                    <button class="btn btn-primary toggle-status" onclick="toggleChannel('${channel}')">Toggle Status</button>
+                    <button class="btn btn-secondary ptt-button" onmousedown="requestVoiceChannel('${channel}')" onmouseup="releaseVoiceChannel('${channel}')">PTT</button>
+                </div>
+            </div>
+        `;
+        document.getElementById('channelsContainer').appendChild(channelElement);
+        activeVoiceChannels[channel] = { element: channelElement, status: 'OFF', rid: rid };
     }
 
-    var socket = io();
+    function toggleChannel(channel) {
+        const channelStatus = activeVoiceChannels[channel].status;
+        if (channelStatus === 'OFF') {
+            socket.emit('CHANNEL_AFFILIATION_REQUEST', { srcId: rid, dstId: channel });
+        } else {
+            socket.emit('REMOVE_AFFILIATION', { srcId: rid, dstId: channel });
+        }
+    }
 
-    function createRadioInstance(channelData) {
-        let voice_channel_granted = false;
-        let denied = false;
-        let reg_deny = false;
-        let inhibit = true;
-        let transmitting = false
-        let voiceChannelRequested = false;
-        let voiceChannelReleased = false;
-        const { channel, zone, rid, mode } = channelData;
-        const userStatus = {
-            microphone: false,
-            mute: false,
-            username:  rid,
-            online: false,
-            channel: channel
-        };
-        socket.emit("userInformation", userStatus);
+    function requestVoiceChannel(channel) {
+        socket.emit('VOICE_CHANNEL_REQUEST', { srcId: rid, dstId: channel });
+    }
 
-        const channelName = channel.replace(/\s+/g, "_");
-        const radioDiv = document.createElement("div");
-        radioDiv.className = "container";
-        radioDiv.innerHTML = `
-                <img class="image" src="/files/images/apx6k.png" alt="radio">
-                <div id="line1_${channelName}" class="line1">${zone}</div>
-                <div id="line2_${channelName}" class="line2">${channel}</div>
-                <div id="menu2_${channelName}" class="menu2">Page</div>
-                <div id="menu3_${channelName}" class="menu3">Batt</div>
-                <div id="line3_${channelName}" class="line3"></div>
-                <div id="menu1_${channelName}" class="menu1">Zone</div>
-                <button class="pwr_button" onclick="radioPowerOn('${channel}', ${rid}, '${channelName}')">PW</button>
-                <button class="emerg_button" onclick="send_emerg('${channel}', ${rid}, '${channelName}')">EM</button>
-                <button class="PTT" onmousedown="request_voice_channel('${channel}', ${rid}, '${channelName}')" onmouseup="release_voice_channel('${channel}', ${rid}, '${channelName}')">PTTTT</button>
-            `;
+    function releaseVoiceChannel(channel) {
+        socket.emit('RELEASE_VOICE_CHANNEL', { srcId: rid, dstId: channel });
+    }
 
-        document.getElementById("radioContainer").appendChild(radioDiv);
-        toggleConnection(this)
+    socket.on('CHANNEL_AFFILIATION_GRANTED', data => {
+        if (data.srcId === rid && data.dstId in activeVoiceChannels) {
+            updateChannelStatus(data.dstId, 'ON');
+        }
+    });
 
-        navigator.mediaDevices.getUserMedia({ audio: true }).then((stream) => {
-            let mediaRecorderOptions;
-            if (mode === "digital"){
-                mediaRecorderOptions = {
-                    audioBitsPerSecond: 7200,
-                    bitDepth: 2,
-                    channels: 1
-                };
-            } else {
-                mediaRecorderOptions = {
-                    audioBitsPerSecond: 44100,
-                    bitDepth: 16,
-                    channels: 1
-                };
-            }
-            var mediaRecorder = new MediaRecorder(stream, mediaRecorderOptions);
-            mediaRecorder.start();
-
-            var audioChunks = [];
-
-            mediaRecorder.addEventListener("dataavailable", function (event) {
-                audioChunks.push(event.data);
-            });
-
-            mediaRecorder.addEventListener("stop", function () {
-                var audioBlob = new Blob(audioChunks);
-
-                audioChunks = [];
-
-                var fileReader = new FileReader();
-                fileReader.readAsDataURL(audioBlob);
-                fileReader.onloadend = function () {
-                    if (!userStatus.microphone || !userStatus.online || !voice_channel_granted) return;
-                    var base64String = fileReader.result;
-                    socket.emit("voice", base64String);
-                };
-
-                mediaRecorder.start();
-
-
-                setTimeout(function () {
-                    mediaRecorder.stop();
-                }, 1000);
-            });
-
-            setTimeout(function () {
-                mediaRecorder.stop();
-            }, 1000);
-        });
-        socket.on("send", function (data) {
-            console.log(data.channel);
-
-            if (data.rid.toString() === rid.toString() && data.channel === channel) {
-                var audio = new Audio(data.newData);
-                audio.play();
-            }
-        });
-        socket.on("VOICE_CHANNEL_GRANT", function handleVoiceChannelGrant(data) {
-            const channelName = data.channel.replace(/\s+/g, "_");
-
-            if (data.channel === channel && data.rid.toString() === rid.toString()) {
+    socket.on('VOICE_CHANNEL_GRANT', data => {
+            //updateChannelStatus(data.dstId, 'TALKING');
+        socket.on("VOICE_CHANNEL_GRANT", function (data) {
+            //console.log(activeVoiceChannels.channel)
+            //console.log(data.srcId)
+            //console.log(data.dstId)
+            if (data.srcId === "<%=rid%>" && data.dstId === activeVoiceChannels.channel && !inhibit) {
                 tpt_generate();
                 userStatus.microphone = !userStatus.microphone;
+                console.log("Switching to voice channel:", data.newChannel);
+                userStatus.voiceChannel = data.newChannel;
                 emitUserInformation();
+                socket.emit("VOICE_CHANNEL_CONFIRMED", {"srcId": "<%= rid %>", "dstId": activeVoiceChannels.channel});
                 voice_channel_granted = true;
+                console.log(userStatus.voiceChannel)
                 denied = false;
-            } else if(data.channel === channel) {
-                updateTextContent("3", `ID: ${data.rid}`, channelName)
-            }
-        });
-        socket.on("VOICE_CHANNEL_RELEASE", function (data){
-            const channelName = data.channel.replace(/\s+/g, "_");
-            if (data.rid.toString() === rid.toString() && data.channel === channel) {
-                voice_channel_granted = false;
-                userStatus.microphone = !userStatus.microphone;
+            } else if(data.dstId === activeVoiceChannels.channel && !inhibit) {
+                console.log("Switching to voice channel:", data.newChannel);
+                userStatus.voiceChannel = data.newChannel;
                 emitUserInformation();
-                denied = false;
-            } else if(data.channel === channel){
-                setTimeout(function (){
-                    updateTextContent("3", '', channelName)
-                }, 1500)
+                socket.emit("VOICE_CHANNEL_CONFIRMED", {"srcId": "<%= rid %>", "dstId": activeVoiceChannels.channel});
+                //updateTextContent("3", `ID: ${data.srcId}`)
             }
-        });
-        socket.on("VOICE_CHANNEL_DENY", function (data){
-            const channelName = data.channel.replace(/\s+/g, "_");
-            denied = true
-            if (data.rid.toString() === rid.toString() && data.channel === channel) {
-                bonk();
-                setTimeout(function (){
-                    voiceChannelRequested = false;
-                    voiceChannelReleased = false;
-                }, 1500);
-            }
-        });
-        socket.on("EMERGENCY_CALL", function (data){
-            const channelName = data.channel.replace(/\s+/g, "_");
-            if (data.channel === channel){
-                emergency_tone_generate();
-                updateTextContent("3", `EMERGENCY:<br />${data.rid}`,channelName)
-                setTimeout(function (){
-                    updateTextContent("3", '')
-                }, 3500)
-            }
-        });
-        function toggleConnection(e) {
-            userStatus.online = !userStatus.online;
-            emitUserInformation();
-        }
-        function emitUserInformation() {
-            socket.emit("userInformation", userStatus);
-        }
-    }
-    function updateTextContent(line, newText, instance) {
-        const element = document.getElementById(`line${line}_${instance}`);
-        element.innerHTML = newText;
-    }
-    function send_emerg(channel, rid){
-        socket.emit("EMERGENCY_CALL", {"rid": rid, "channel": channel});
-    }
-    function request_voice_channel(channel, rid) {
-        socket.emit("VOICE_CHANNEL_REQUEST", {"rid": rid, "channel": channel})
-    }
-    function release_voice_channel(channel, rid) {
-        socket.emit("RELEASE_VOICE_CHANNEL", {"rid":  rid ,"channel": channel});
-        voiceChannelRequested = false;
-        voiceChannelReleased = false;
-    }
-    function beep(frequency, duration, volume, type) {
-        var oscillator = audioCtx.createOscillator();
-        var gainNode = audioCtx.createGain();
-
-        oscillator.connect(gainNode);
-        gainNode.connect(audioCtx.destination);
-        vol = 1;
-        gainNode.gain.value = vol;
-        oscillator.frequency.value = frequency;
-        oscillator.type = type;
-
-        oscillator.start();
-
-        setTimeout(
-            function () {
-                oscillator.stop();
-            },
-            duration
-        );
-    }
-    function tpt_generate(){
-        beep(910, 30, 20, 'sine');
-        setTimeout(function () {
-            beep(0, 20, 20, 'sine');
-        }, 30);
-        setTimeout(function () {
-            beep(910, 30, 20, 'sine');
-        }, 50);
-        setTimeout(function () {
-            beep(0, 20, 20, 'sine');
-        }, 80);
-        setTimeout(function () {
-            beep(910, 50, 20, 'sine');
-        }, 100);
-    }
-    function emergency_tone_generate(){
-        beep(610, 500, 20, 'sine');
-        setTimeout(function () {
-            beep(910, 500, 20, 'sine');
-        }, 500);
-        setTimeout(function () {
-            beep(610, 500, 20, 'sine');
-        }, 1000);
-        setTimeout(function () {
-            beep(910, 500, 20, 'sine');
-        }, 1500);
-    }
-    function bonk(){
-        beep(310, 1000, 5, 'sine');
-    }
-
-    let zoneData = JSON.parse('<%- JSON.stringify(zoneData) %>');
-
-    zoneData.forEach(zoneInfo => {
-        let zone = zoneInfo.zone;
-        let content = zoneInfo.content;
-
-        content.forEach(channelInfo => {
-            console.log(channelInfo);
-            let [channel, mode] = channelInfo;
-            console.log(`CHAN: ${channel}`);
-            console.log(`ZONE: ${zone}`);
-            console.log(`MODE: ${mode}`);
-            createRadioInstance({ channel, zone, "rid": "1001", mode });
         });
     });
+
+    socket.on('VOICE_CHANNEL_RELEASE', data => {
+        if (data.srcId === rid && data.dstId in activeVoiceChannels) {
+            updateChannelStatus(data.dstId, 'ON');
+        }
+    });
+
+    socket.on('VOICE_CHANNEL_DENY', data => {
+        if (data.srcId === rid && data.dstId in activeVoiceChannels) {
+            alert(`Voice channel denied for ${data.dstId}.`);
+        }
+    });
+
+    function updateChannelStatus(channel, status) {
+        const channelElement = activeVoiceChannels[channel].element;
+        const statusElement = channelElement.querySelector('.status');
+        statusElement.textContent = status;
+        if (status === 'ON') {
+            channelElement.classList.remove('offline');
+            channelElement.classList.add('online');
+        } else if (status === 'OFF') {
+            channelElement.classList.remove('online');
+            channelElement.classList.add('offline');
+        } else if (status === 'TALKING') {
+        }
+        activeVoiceChannels[channel].status = status;
+    }
 </script>
 </body>
 </html>

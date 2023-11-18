@@ -3,10 +3,19 @@ system:
   networkBindAddress: '0.0.0.0' #Bind to address for the network
   networkBindPort: 3000 #Bind to port for the network
 
+  controlChannels: #Multiple control channels work, but don't touch any of this for now. It is static in the client file.
+    - "854.9625"
+    - "857.9625" #You will not see this ever active by default at this time. Again, don't touch control channels.
+
+  voiceChannels: #Have as many as you want and your hosting server can handle. If all voice channels are in use, radios will get denied.
+    - "853.9625"
+    - "855.9625"
+
 paths:
   fullPath: '/home/user/whackerlink' #FULL path to whackerlink
   rconLogins: './rcon_logins.json' #FULL path to json rcon logins
   sheetsJson: './something-124.json' #FULL path to the google sheets json file
+  httpsEnable: true #Do not change unless going through a proxy. This will NOT work unless it is https
 
 configuration:
   sheetId: '' #Sheet ID for the google sheet

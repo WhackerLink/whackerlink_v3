@@ -9,11 +9,18 @@ import yaml from "js-yaml";
 import {google} from 'googleapis';
 import * as https from "https";
 
+//import io2 from "socket.io-client";
+//let peerSocket = io2("https://whackerlink.com");
+// peerSocket.on('connect', function(d){
+//    //console.log("connnnnnnnnnect");
+//     //Future peering stuff
+// });
 const socketsStatus = {};
 const grantedChannels = {};
 const grantedRids = {};
 const affiliations = [];
 let regDenyCount = {};
+let activeVoiceChannels = {};
 
 const configFilePathIndex = process.argv.indexOf('-c');
 if (configFilePathIndex === -1 || process.argv.length <= configFilePathIndex + 1) {
@@ -51,6 +58,9 @@ try {
     const discordEmerg = config.discord.emergencyCall;
     const discordVoiceD = config.discord.emergencyCall;
     const useHttps = config.configuration.httpsEnable || false;
+
+    const controlChannels = config.system.controlChannels;
+    const voiceChannels = config.system.voiceChannels;
 
     // const rconUsername = config.peer.username;
     // const rconPassword = config.peer.password;
@@ -102,6 +112,8 @@ try {
 
     const loginsFile = fs.readFileSync(rconLogins);
     const adminUsers = JSON.parse(loginsFile);
+
+    const availableVoiceChannels = new Set(voiceChannels);
 
     app.use(session({
         secret: "super_secret_password!2",
@@ -156,13 +168,14 @@ try {
     });
     app.get("/console", async (req, res) => {
         try {
+            let rid = "502";
             const sheetTabs = await getSheetTabs(googleSheetClient, sheetId);
             const zoneData = [];
             for (const tab of sheetTabs) {
                 const tabData = await readGoogleSheet(googleSheetClient, sheetId, tab, "A:B");
                 zoneData.push({ zone: tab, content: tabData });
             }
-            res.render("console", {zoneData, networkName});
+            res.render("console", {zoneData, networkName, rid});
         } catch (error) {
             console.error("Error fetching sheet data:", error);
             res.status(500).send("Error fetching sheet data");
@@ -191,6 +204,11 @@ try {
             res.status(500).send("Error fetching sheet data");
         }
     });
+
+    app.get("/sysWatch", (req, res) => {
+        res.render("sysWatch", { networkName: networkName, controlChannels: controlChannels });
+    });
+
     app.get("/auto" , auth, async (req , res)=>{
         try {
             const sheetTabs = await getSheetTabs(googleSheetClient, sheetId);
@@ -234,7 +252,7 @@ try {
 
         try {
             const response = await axios.post(webhookUrl, data);
-            console.log('Webhook sent successfully:', response.data);
+            //console.log('Webhook sent successfully', response.data);
         } catch (error) {
             console.error('Error sending webhook:', error.message);
         }
@@ -253,6 +271,33 @@ try {
         };
         return currentDate.toLocaleString('en-US', cdtOptions);
     }
+
+    function broadcastChannelUpdates() {
+        const controlChannelMapping = controlChannels.reduce((acc, controlChannel) => {
+            acc[controlChannel] = {
+                controlChannel,
+                voiceChannels: []
+            };
+            return acc;
+        }, {});
+
+        for (const [channelName, voiceChannelData] of Object.entries(activeVoiceChannels)) {
+            const socketId = voiceChannelData.socketId;
+            const socketInfo = socketsStatus[socketId];
+
+            if (!socketInfo || !controlChannels.includes(socketInfo.controlChannel)) continue;
+
+            controlChannelMapping[socketInfo.controlChannel].voiceChannels.push({
+                voiceChannel: channelName,
+                dstId: voiceChannelData.dstId,
+                srcId: voiceChannelData.srcId
+            });
+        }
+
+        const channelData = Object.values(controlChannelMapping);
+        io.emit('updateChannels', channelData);
+    }
+
     function removeAffiliation(rid) {
         const index = affiliations.findIndex(affiliation => affiliation.rid === rid);
         if (index !== -1) {
@@ -271,32 +316,90 @@ try {
         const affiliation = affiliations.find(affiliation => affiliation.rid === rid);
         return affiliation ? affiliation.channel : false;
     }
+
+    function isRadioAffiliated(srcId, dstId) {
+        return affiliations.some(affiliation => affiliation.rid === srcId && affiliation.channel === dstId);
+    }
+
     function forceGrant(data){
+        // TODO: Fix for new logic
+        /*
+            WARNING: MAY NOT WORK PROPERLY AT THIS TIME
+         */
         data.stamp = getDaTime();
         io.emit("VOICE_CHANNEL_GRANT", data);
-        console.log(`FORCED VOICE_CHANNEL_GRANT GIVEN TO: ${data.rid} ON: ${data.channel}`);
+        console.log(`FORCED VOICE_CHANNEL_GRANT GIVEN TO: ${data.srcId} ON: ${data.dstId}`);
         if (enableDiscord && discordVoiceG) {
-            sendDiscord(`Voice Transmission from ${data.rid} on ${data.channel}`);
+            sendDiscord(`Voice Transmission from ${data.srcId} on ${data.dstId}`);
         }
-        grantedChannels[data.channel] = true;
-        grantedRids[data.rid] = true;
+        grantedChannels[data.dstId] = true;
+        grantedRids[data.srcId] = true;
     }
+
+    function getAvailableVoiceChannel() {
+        for (let channel of voiceChannels) {
+            if (!activeVoiceChannels[channel]) {
+                return channel;
+            }
+        }
+        return null;
+    }
+
+    function assignVoiceChannel(dstId, socketId, srcId) {
+        let availableChannel = getAvailableVoiceChannel();
+        if (availableChannel) {
+            activeVoiceChannels[availableChannel] = { dstId, socketId, srcId };
+            return availableChannel;
+        }
+        return null;
+    }
+
     io.on("connection", function (socket) {
         const socketId = socket.id;
         socketsStatus[socket.id] = {};
+
+        broadcastChannelUpdates();
+
+        socket.on("VOICE_CHANNEL_CONFIRMED", function (data) {
+            if (data.srcId && grantedChannels[data.dstId]) {
+                socketsStatus[socketId].voiceChannelActive = true;
+                console.log(`Voice channel confirmed ${data.srcId} on ${data.dstId}`);
+            }
+        });
+
+        socket.on("JOIN_CONTROL_CHANNEL", (data) => {
+            if (controlChannels.includes(data.channel)) {
+                socket.join(data.channel);
+                socket.emit("CONTROL_CHANNEL_ACK", {
+                    message: "Connected to Control Channel: " + data.channel
+                });
+            } else {
+                socket.emit("CONTROL_CHANNEL_ERROR", {
+                    message: "Invalid Control Channel: " + data.channel
+                });
+            }
+        });
 
         socket.on("voice", function (data) {
             var newData = data.split(";");
             newData[0] = "data:audio/wav;";
             newData = newData.join(";");
-
-            const senderChannel = socketsStatus[socketId].channel;
-
+            const senderDstId = socketsStatus[socketId].dstId;
+            const activeVoiceChannel = socketsStatus[socketId].voiceChannel;
             for (const id in socketsStatus) {
-                const recipientChannel = socketsStatus[id].channel;
-
-                if (id != socketId && !socketsStatus[id].mute && socketsStatus[id].online && senderChannel === recipientChannel)
-                    socket.broadcast.to(id).emit("send", {newData: newData, rid: socketsStatus[id].username, channel: socketsStatus[id].channel});
+                const recipientDstId = socketsStatus[id].dstId;
+                if (senderDstId === recipientDstId)
+                    if (socketsStatus[socketId].voiceChannelActive) {
+                        socket.to(activeVoiceChannel).emit("send", {
+                            newData: newData,
+                            srcId: socketsStatus[id].srcId,
+                            dstId: socketsStatus[id].dstId,
+                            voiceChannel: socketsStatus[id].voiceChannel,
+                            controlChannel: socketsStatus[id].controlChannel
+                        });
+                    } else {
+                        console.log(`srcID: ${socketsStatus[socketId].srcId} not on voice channel; stand by`);
+                    }
             }
         });
 
@@ -309,65 +412,85 @@ try {
             io.emit('AFFILIATION_LOOKUP_UPDATE', affiliations);
         });
 
-        socket.on("VOICE_CHANNEL_REQUEST", function (data){
-            console.log(`VOICE_CHANNEL_REQUEST FROM: ${data.rid} TO: ${data.channel}`);
+        socket.on("VOICE_CHANNEL_REQUEST", function (data) {
+            console.log(`VOICE_CHANNEL_REQUEST FROM: ${data.srcId} TO: ${data.dstId}`);
             const cdtDateTime = getDaTime();
             data.stamp = cdtDateTime;
+
             if (enableDiscord && discordVoiceR) {
-                sendDiscord(`Voice Request from ${data.rid} on ${data.channel} at ${data.stamp}`);
+                sendDiscord(`Voice Request from ${data.srcId} on ${data.dstId} at ${data.stamp}`);
             }
             io.emit("VOICE_CHANNEL_REQUEST", data);
-            setTimeout(function (){
-                let integerNumber = parseInt(data.rid);
+
+            setTimeout(function () {
+                let integerNumber = parseInt(data.srcId);
                 if (!Number.isInteger(integerNumber)) {
                     data.stamp = cdtDateTime;
                     io.emit("VOICE_CHANNEL_DENY", data);
-                    console.log("Invalid RID type");
+                    console.log("Invalid RID");
                     return;
                 }
-                if (grantedChannels[data.channel] === undefined) {
-                    grantedChannels[data.channel] = false;
-                }
-                if (grantedRids[data.rid] === undefined){
-                    grantedRids[data.rid] = false;
-                }
-                let grant = false;
-                const randomNum = Math.floor(Math.random() * 5) + 1;
-                grant = randomNum !== 3;
-                if (grant && !grantedChannels[data.channel]) {
-                    data.stamp = cdtDateTime;
-                    io.emit("VOICE_CHANNEL_GRANT", data);
-                    console.log(`VOICE_CHANNEL_GRANT GIVEN TO: ${data.rid} ON: ${data.channel}`);
-                    if (enableDiscord && discordVoiceG) {
-                        sendDiscord(`Voice Transmission from ${data.rid} on ${data.channel} at ${data.stamp}`);
-                    }
-                    grantedChannels[data.channel] = true;
-                    grantedRids[data.rid] = true;
-                } else {
-                    data.stamp = cdtDateTime;
-                    io.emit("VOICE_CHANNEL_DENY", data);
-                    console.log(`VOICE_CHANNEL_DENY GIVEN TO: ${data.rid} ON: ${data.channel}`);
-                    if (enableDiscord && discordVoiceD) {
-                        sendDiscord(`Voice Deny from ${data.rid} on ${data.channel} at ${data.stamp}`);
-                    }
-                    grantedChannels[data.channel] = false;
-                }
 
-            }, 500);
+                if (isRadioAffiliated(data.srcId, data.dstId)) {
+
+                    let assignedChannel = assignVoiceChannel(data.dstId, socket.id, data.srcId);
+                    if (assignedChannel) {
+                        data.newChannel = assignedChannel;
+
+                        for (const id in socketsStatus) {
+                            if (socketsStatus[id].dstId === data.dstId) {
+                                io.to(socketsStatus[id].controlChannel).emit("VOICE_CHANNEL_GRANT", data);
+                                socket.join(assignedChannel);
+                            }
+                        }
+                        broadcastChannelUpdates();
+                        console.log(`VOICE_CHANNEL_GRANT GIVEN TO: ${data.srcId} ON: ${data.dstId} AT: ${assignedChannel}`);
+                        if (enableDiscord && discordVoiceG) {
+                            sendDiscord(`Voice Transmission from ${data.srcId} on ${data.dstId} at ${data.stamp}`);
+                        }
+                        grantedChannels[data.dstId] = true;
+                        grantedRids[data.srcId] = true;
+
+                    } else {
+                        data.stamp = cdtDateTime;
+                        io.emit("VOICE_CHANNEL_DENY", data);
+                        console.log(`VOICE_CHANNEL_DENY GIVEN TO: ${data.srcId} ON: ${data.dstId}`);
+                        if (enableDiscord && discordVoiceD) {
+                            sendDiscord(`Voice Deny from ${data.srcId} on ${data.dstId} at ${data.stamp}`);
+                        }
+                    }
+                } else {
+                    io.emit("VOICE_CHANNEL_DENY", data);
+                    console.log(`VOICE_CHANNEL_DENY GIVEN TO: ${data.srcId} ON: ${data.dstId}`);
+                    console.log(data.srcId, ": Not aff'ed to :", data.dstId);
+                }
+            }, 100);
         });
 
         socket.on("RELEASE_VOICE_CHANNEL", function (data){
             data.stamp = getDaTime();
-            console.log(`RELEASE_VOICE_CHANNEL FROM: ${data.rid} TO: ${data.channel}`);
+            console.log(`RELEASE_VOICE_CHANNEL FROM: ${data.srcId} TO: ${data.dstId}`);
             io.emit("VOICE_CHANNEL_RELEASE", data);
-            grantedRids[data.rid] = false;
-            grantedChannels[data.channel] = false;
+            grantedRids[data.srcId] = false;
+            grantedChannels[data.dstId] = false;
+            let channel = data.newChannel;
+            Object.keys(activeVoiceChannels).forEach(channel => {
+                if (activeVoiceChannels[channel].dstId === data.dstId && activeVoiceChannels[channel].socketId === socket.id) {
+                    delete activeVoiceChannels[channel];
+                }
+            });
+            broadcastChannelUpdates();
         });
 
         socket.on("disconnect", function (data) {
-            if (socketsStatus[socketId].username) {
-                removeAffiliation(socketsStatus[socketId].username);
+            if (socketsStatus[socketId].srcId) {
+                removeAffiliation(socketsStatus[socketId].srcId);
             }
+            Object.keys(activeVoiceChannels).forEach(channel => {
+                if (activeVoiceChannels[channel].socketId === socket.id) {
+                    delete activeVoiceChannels[channel];
+                }
+            });
             delete socketsStatus[socketId];
         });
 
@@ -375,45 +498,45 @@ try {
             data.stamp = getDaTime();
             io.emit("CHANNEL_AFFILIATION_REQUEST", data);
             if (enableDiscord && discordAffR) {
-                sendDiscord(`Affiliation Grant to ${data.rid} on ${data.channel} at ${data.stamp}`);
+                sendDiscord(`Affiliation Grant to ${data.srcId} on ${data.dstId} at ${data.stamp}`);
             }
             setTimeout(function (){
                 io.emit("CHANNEL_AFFILIATION_GRANTED", data);
                 if (enableDiscord && discordAffG) {
-                    sendDiscord(`Affiliation Grant to ${data.rid} on ${data.channel} at ${data.stamp}`);
+                    sendDiscord(`Affiliation Grant to ${data.srcId} on ${data.dstId} at ${data.stamp}`);
                 }
-                if (!getAffiliation(data.rid)){
-                    console.log("AFFILIATION GRANTED TO: " + data.rid + " ON: " + data.channel);
-                    addAffiliation(data.rid, data.channel, data.stamp = getDaTime());
+                if (!getAffiliation(data.srcId)){
+                    console.log("AFFILIATION GRANTED TO: " + data.srcId + " ON: " + data.dstId);
+                    addAffiliation(data.srcId, data.dstId, data.stamp = getDaTime());
                 } else {
-                    console.log("AFFILIATION GRANTED TO: " + data.rid + " ON: " + data.channel + " AND REMOVED OLD AFF");
-                    removeAffiliation(data.rid);
-                    addAffiliation(data.rid, data.channel);
+                    console.log("AFFILIATION GRANTED TO: " + data.srcId + " ON: " + data.dstId + " AND REMOVED OLD AFF");
+                    removeAffiliation(data.srcId);
+                    addAffiliation(data.srcId, data.dstId);
                 }
             },1500);
         });
         socket.on("REMOVE_AFFILIATION", function (data){
             data.stamp = getDaTime();
-            removeAffiliation(data.rid);
-            console.log("AFFILIATION REMOVED: " + data.rid + " ON: " + data.channel);
+            removeAffiliation(data.srcId);
+            console.log("AFFILIATION REMOVED: " + data.srcId + " ON: " + data.dstId);
             io.emit("REMOVE_AFFILIATION_GRANTED", data);
         });
 
         socket.on("EMERGENCY_CALL", function (data){
             if (enableDiscord && discordEmerg) {
-                sendDiscord(`Affiliation Grant to ${data.rid} on ${data.channel} at ${data.stamp}`);
+                sendDiscord(`Affiliation Grant to ${data.srcId} on ${data.dstId} at ${data.stamp}`);
             }
             data.stamp = getDaTime();
-            console.log("EMERGENCY_CALL FROM: " + data.rid + " ON: " + data.channel)
+            console.log("EMERGENCY_CALL FROM: " + data.srcId + " ON: " + data.dstId)
             io.emit("EMERGENCY_CALL", data);
         });
 
         socket.on("RID_INHIBIT", async function(data) {
             if (enableDiscord && discordInhibit) {
-                sendDiscord(`Inihbit sent to ${data.rid} on ${data.channel} at ${data.stamp}`);
+                sendDiscord(`Inihbit sent to ${data.srcId} on ${data.dstId} at ${data.stamp}`);
             }
             data.stamp = getDaTime();
-            const ridToInhibit = data.channel;
+            const ridToInhibit = data.dstId;
             const ridAcl = await readGoogleSheet(googleSheetClient, sheetId, "rid_acl", "A:B");
             io.emit("RID_INHIBIT", data);
             const matchingIndex = ridAcl.findIndex(entry => entry[0] === ridToInhibit);
@@ -435,7 +558,7 @@ try {
 
         socket.on("RID_UNINHIBIT", async function (data){
             data.stamp = getDaTime();
-            const ridToUnInhibit = data.channel;
+            const ridToUnInhibit = data.dstId;
             const ridAcl = await readGoogleSheet(googleSheetClient, sheetId, "rid_acl", "A:B");
             io.emit("RID_UNINHIBIT", data);
             const matchingIndex = ridAcl.findIndex(entry => entry[0] === ridToUnInhibit);

@@ -4,8 +4,9 @@
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://code.responsivevoice.org https://app.responsivevoice.org; media-src 'self' data:">
     <title>Whackerlink 3.0</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.1.2/socket.io.js" integrity="sha512-iZIBSs+gDyTH0ZhUem9eQ1t4DcEn2B9lHxfRMeGQhyNdSUz+rb+5A3ummX6DQTOIs1XK0gOteOg/LPtSo9VJ+w==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.1.2/socket.io.js" crossorigin="anonymous"></script>
     <script src="https://code.responsivevoice.org/responsivevoice.js?key=PekkZld1"></script>
 </head>
 <header>
@@ -19,9 +20,6 @@
 <body>
 
 
-
-</ul>
-
 <script>
 
     //toggleConnection(this)
@@ -30,9 +28,11 @@
     const userStatus = {
         microphone: false,
         mute: false,
-        username: "<%=rid%>",
+        srcId: "<%=rid%>",
         online: false,
-        channel: "<%=selected_channel%>"
+        dstId: "<%=selected_channel%>",
+        controlChannel: "854.9625",
+        voiceChannel: "000.0000"
     };
     let voice_channel_granted = false;
     let denied = false;
@@ -58,13 +58,19 @@
                 release_voice_channel();
             }
         });
+        document.addEventListener("keypress", function (event) {
+            console.log(event)
+            if (event.code === "KeyJ") {
+                send_emerg();
+            }
+        });
             audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
             socket.emit("REG_REQUEST", "<%= rid %>");
             socket.once("REG_GRANTED", function (data) {
                 if (data === "<%= rid %>") {
                     updateTextContent("1", "<%=zone%>");
-                    updateTextContent("2", `${userStatus.channel}`)
+                    updateTextContent("2", `${userStatus.dstId}`)
                     changeMenuName("1", "Zone");
                     changeMenuName("2", "Page");
                     changeMenuName("3", "Batt");
@@ -80,7 +86,7 @@
             socket.once("REG_DENIED", function (data) {
                 if (data === "<%= rid %>") {
                     updateTextContent("1", "Zone A");
-                    updateTextContent("2", `${userStatus.channel}`)
+                    updateTextContent("2", `${userStatus.dstId}`)
                     changeMenuName("1", "Zone");
                     changeMenuName("2", "Page");
                     changeMenuName("3", "Batt");
@@ -100,7 +106,7 @@
         socket.once("REG_REFUSE", function (data) {
             if (data === "<%= rid %>") {
                 updateTextContent("1", "Zone A");
-                updateTextContent("2", `${userStatus.channel}`)
+                updateTextContent("2", `${userStatus.dstId}`)
                 changeMenuName("1", "Zone");
                 changeMenuName("2", "Page");
                 changeMenuName("3", "Batt");
@@ -117,11 +123,22 @@
                 },1000);
             }
         });
-
-        // };
     }
 
     var socket = io();
+
+    socket.emit("JOIN_CONTROL_CHANNEL", { channel: userStatus.controlChannel });
+
+    socket.on("CONTROL_CHANNEL_ACK", function(data) {
+        //console.log(data.message);
+        let controlChannelAcknowledged = true;
+    });
+
+    socket.on("CONTROL_CHANNEL_ERROR", function(data) {
+        console.error(data.message);
+    });
+
+
     socket.emit("userInformation", userStatus);
 
     function beep(frequency, duration, volume, type) {
@@ -175,12 +192,12 @@
         beep(310, 1000, 5, 'sine');
     }
     window.addEventListener("beforeunload", function (e) {
-        socket.emit("REMOVE_AFFILIATION", {"rid": "<%=rid%>", "channel": "<%=selected_channel%>"})
+        socket.emit("REMOVE_AFFILIATION", {"srcId": "<%=rid%>", "dstId": "<%=selected_channel%>"})
         e.returnValue = "Are you sure you want to leave the page?";
     }, false);
 
     function mainFunction(time) {
-        socket.emit('CHANNEL_AFFILIATION_REQUEST', {"rid": "<%=rid%>", "channel": "<%=selected_channel%>"})
+        socket.emit('CHANNEL_AFFILIATION_REQUEST', {"srcId": "<%=rid%>", "dstId": "<%=selected_channel%>"})
 
 
         toggleConnection(this)
@@ -217,7 +234,7 @@
                 var fileReader = new FileReader();
                 fileReader.readAsDataURL(audioBlob);
                 fileReader.onloadend = function () {
-                        if (!userStatus.microphone || !userStatus.online || !voice_channel_granted) return;
+                        if (!voice_channel_granted) return;
                         var base64String = fileReader.result;
                         socket.emit("voice", base64String);
                 };
@@ -238,32 +255,47 @@
 
         socket.on("send", function (data) {
             if (!inhibit) {
-                console.log(data.channel);
-                if (data.rid.toString() === "<%=rid%>" && data.channel === "<%=selected_channel%>") {
-                    var audio = new Audio(data.newData);
-                    audio.play();
+                if (data.srcId !== undefined) {
+                    if (data.srcId.toString() === "<%= rid %>" && data.dstId === "<%= selected_channel %>") {
+                        var audio = new Audio(data.newData);
+                        audio.play();
+                        //console.log(data.newData)
+                    }
                 }
             }
         });
         socket.on("VOICE_CHANNEL_GRANT", function (data) {
-            console.log("<%=selected_channel%>")
-            if (data.rid === "<%=rid%>" && data.channel === "<%=selected_channel%>" && !inhibit) {
+            //console.log("<%=selected_channel%>")
+            //console.log(data.srcId)
+            //console.log(data.dstId)
+            if (data.srcId === "<%=rid%>" && data.dstId === "<%=selected_channel%>" && !inhibit) {
                 tpt_generate();
                 userStatus.microphone = !userStatus.microphone;
+                console.log("Switching to voice channel:", data.newChannel);
+                userStatus.voiceChannel = data.newChannel;
                 emitUserInformation();
+                socket.emit("VOICE_CHANNEL_CONFIRMED", {"srcId": "<%= rid %>", "dstId": "<%= selected_channel %>"});
                 voice_channel_granted = true;
+                console.log(userStatus.voiceChannel)
                 denied = false;
-            } else if(data.channel === "<%=selected_channel%>" && !inhibit) {
-                updateTextContent("3", `ID: ${data.rid}`)
+            } else if(data.dstId === "<%=selected_channel%>" && !inhibit) {
+                console.log("Switching to voice channel:", data.newChannel);
+                userStatus.voiceChannel = data.newChannel;
+                emitUserInformation();
+                socket.emit("VOICE_CHANNEL_CONFIRMED", {"srcId": "<%= rid %>", "dstId": "<%= selected_channel %>"});
+                updateTextContent("3", `ID: ${data.srcId}`)
             }
         });
         socket.on("VOICE_CHANNEL_RELEASE", function (data){
-            if (data.rid === "<%=rid%>" && data.channel === "<%=selected_channel%>" && !inhibit) {
+            if (data.srcId === "<%=rid%>" && data.dstId === "<%=selected_channel%>" && !inhibit) {
                 voice_channel_granted = false;
                 userStatus.microphone = !userStatus.microphone;
+                userStatus.voiceChannel = "000.0000";
                 emitUserInformation();
                 denied = false;
-            } else if(data.channel === "<%=selected_channel%>" && !inhibit){
+            } else if(data.dstId === "<%=selected_channel%>" && !inhibit){
+                userStatus.voiceChannel = "000.0000";
+                emitUserInformation();
                 setTimeout(function (){
                     updateTextContent("3", '')
                 }, 1500)
@@ -271,7 +303,7 @@
         });
         socket.on("VOICE_CHANNEL_DENY", function (data){
             denied = true
-            if (data.rid === "<%=rid%>" && data.channel === "<%=selected_channel%>" && !inhibit) {
+            if (data.srcId === "<%=rid%>" && data.dstId === "<%=selected_channel%>" && !inhibit) {
                 bonk();
                 setTimeout(function (){
                     voiceChannelRequested = false;
@@ -280,9 +312,9 @@
             }
         });
         socket.on("EMERGENCY_CALL", function (data){
-             if (data.channel === "<%=selected_channel%>" && !inhibit){
+             if (data.dstId === "<%=selected_channel%>" && !inhibit){
                  emergency_tone_generate();
-                 updateTextContent("3", `EMERGENCY:<br />${data.rid}`)
+                 updateTextContent("3", `EMERGENCY:<br />${data.srcId}`)
                  setTimeout(function (){
                      updateTextContent("3", '')
                  }, 3500)
@@ -290,8 +322,8 @@
         });
 
         socket.on("RID_INHIBIT", function (data){
-           if (data.channel === "<%=rid%>"){
-               socket.emit("RID_INHIBIT_ACK", {rid: data.channel, channel: data.rid});
+           if (data.srcId === "<%=rid%>"){
+               socket.emit("RID_INHIBIT_ACK", {srcId: data.dstId, channel: data.srcId});
                reg_deny = true;
                voice_channel_granted = false;
                denied = true;
@@ -302,8 +334,8 @@
            }
         });
         socket.on("RID_UNINHIBIT", function (data){
-            if (data.channel === "<%=rid%>"){
-                socket.emit("RID_UNINHIBIT_ACK", {rid: data.channel, channel: data.rid});
+            if (data.dstId === "<%=rid%>"){
+                socket.emit("RID_UNINHIBIT_ACK", {srcId: data.dstId, channel: data.srcId});
                 reg_deny = false;
                 denied = false;
                 inhibit = false;
@@ -314,19 +346,19 @@
             }
         });
         socket.on("INFORMATION_ALERT", function (data){
-            if (data.channel === "<%=selected_channel%>") {
+            if (data.dstId === "<%=selected_channel%>") {
                 let audio = new Audio('/files/audio/info_tone.wav');
                 audio.play();
             }
         });
         socket.on("CANCELLATION_ALERT", function (data){
-            if (data.channel === "<%=selected_channel%>") {
+            if (data.dstId === "<%=selected_channel%>") {
                 let audio = new Audio('/files/audio/cancel_tone.wav');
                 audio.play();
             }
         });
         socket.on("AUTO_DISPATCH_CHANNEL_BROADCAST", function(data){
-            if (data.channel === "<%=selected_channel%>") {
+            if (data.dstId === "<%=selected_channel%>") {
                 responsiveVoice.speak(data.message, `US English Female`,  {rate: .8});
             }
         });
@@ -348,13 +380,13 @@
             bonk();
         } else {
             if (!inhibit) {
-                socket.emit("VOICE_CHANNEL_REQUEST", {"rid": "<%= rid %>", "channel": "<%= selected_channel %>"})
+                socket.emit("VOICE_CHANNEL_REQUEST", {"srcId": "<%= rid %>", "dstId": "<%= selected_channel %>"})
             }
         }
     }
     function release_voice_channel(e) {
         if (!denied && !inhibit && !reg_deny) {
-            socket.emit("RELEASE_VOICE_CHANNEL", {"rid": "<%= rid %>", "channel": "<%= selected_channel %>"})
+            socket.emit("RELEASE_VOICE_CHANNEL", {"srcId": "<%= rid %>", "dstId": "<%= selected_channel %>"})
             voiceChannelRequested = false;
             voiceChannelReleased = false;
         } else {
@@ -384,7 +416,7 @@
         if (reg_deny || inhibit){
             return;
         }
-        socket.emit("EMERGENCY_CALL", {"rid": "<%= rid %>", "channel": "<%= selected_channel %>"});
+        socket.emit("EMERGENCY_CALL", {"srcId": "<%= rid %>", "dstId": "<%= selected_channel %>"});
     }
     function changeMenuName(menu_number, text){
         let thing = document.getElementById(`menu${menu_number}`);
