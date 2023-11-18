@@ -25,8 +25,8 @@
     <thead>
     <tr>
         <th>Action</th>
-        <th>RID</th>
-        <th>Channel</th>
+        <th>srcId</th>
+        <th>dstId</th>
         <th>Time</th>
     </tr>
     </thead>
@@ -86,56 +86,56 @@
     }
 
     socket.on('VOICE_CHANNEL_GRANT', function (msg) {
-        var rid = msg.rid;
-        var channel = msg.channel;
+        var rid = msg.srcId;
+        var channel = msg.dstId;
         var bgColorClass = "bg-success";
         var textColorClass = "text-white";
         helper.addMessage("Voice Channel Grant", rid, channel, bgColorClass, textColorClass, msg.stamp);
     });
 
     socket.on('VOICE_CHANNEL_REQUEST', function (msg) {
-        var rid = msg.rid;
-        var channel = msg.channel;
+        var rid = msg.srcId;
+        var channel = msg.dstId;
         var bgColorClass = "bg-primary";
         var textColorClass = "text-white";
         helper.addMessage("Voice Channel Request", rid, channel, bgColorClass, textColorClass, msg.stamp);
     });
 
     socket.on('VOICE_CHANNEL_RELEASE', function (msg) {
-        var rid = msg.rid;
-        var channel = msg.channel;
+        var rid = msg.srcId;
+        var channel = msg.dstId;
         var bgColorClass = "bg-success";
         var textColorClass = "text-white";
         helper.addMessage("Voice Channel Release", rid, channel, bgColorClass, textColorClass,msg.stamp);
     });
 
     socket.on('VOICE_CHANNEL_DENY', function (msg) {
-        var rid = msg.rid;
-        var channel = msg.channel;
+        var rid = msg.srcId;
+        var channel = msg.dstId;
         var bgColorClass = "bg-warning";
         var textColorClass = "text-white";
         helper.addMessage("Voice Channel Request Deny", rid, channel, bgColorClass, textColorClass,msg.stamp);
     });
 
     socket.on('CHANNEL_AFFILIATION_REQUEST', function (msg){
-        var rid = msg.rid;
-        var channel = msg.channel;
+        var rid = msg.srcId;
+        var channel = msg.dstId;
         var bgColorClass = "bg-primary";
         var textColorClass = "text-white";
         helper.addMessage("Affiliation Request", rid, channel, bgColorClass, textColorClass,msg.stamp);
     });
 
     socket.on('CHANNEL_AFFILIATION_GRANTED', function (msg){
-        var rid = msg.rid;
-        var channel = msg.channel;
+        var rid = msg.srcId;
+        var channel = msg.dstId;
         var bgColorClass = "bg-success";
         var textColorClass = "text-white";
         helper.addMessage("Affiliation Grant", rid, channel, bgColorClass, textColorClass,msg.stamp);
     });
 
     socket.on('EMERGENCY_CALL', function (msg) {
-        var rid = msg.rid;
-        var channel = msg.channel;
+        var rid = msg.srcId;
+        var channel = msg.dstId;
         var bgColorClass = "flash-bg-danger";
         var textColorClass = "text-white";
         helper.addMessage("Emergency Call", rid, channel, bgColorClass, textColorClass,msg.stamp);
@@ -162,57 +162,57 @@
         helper.addMessage("Register Request", rid, "N/A", bgColorClass, textColorClass, "N/A");
     });
     socket.on('RID_INHIBIT', function (msg) {
-        var rid = msg.rid;
-        var channel = msg.channel;
+        var rid = msg.srcId;
+        var channel = msg.dstId;
         var bgColorClass = "bg-danger";
         var textColorClass = "text-white";
         helper.addMessage("RID Inhibit", rid, channel, bgColorClass, textColorClass, "N/A");
     });
     socket.on('RID_UNINHIBIT', function (msg) {
-        var rid = msg.rid;
-        var channel = msg.channel;
+        var rid = msg.srcId;
+        var channel = msg.dstId;
         var bgColorClass = "bg-danger";
         var textColorClass = "text-white";
         helper.addMessage("RID Uninhibit", rid, channel, bgColorClass, textColorClass, "N/A");
     });
     socket.on('RID_INHIBIT_ACK', function (msg) {
-        var rid = msg.rid;
-        var channel = msg.channel;
+        var rid = msg.srcId;
+        var channel = msg.dstId;
         var bgColorClass = "bg-warning";
         var textColorClass = "text-white";
         helper.addMessage("RID Inhibit ACK", rid, channel, bgColorClass, textColorClass, "N/A");
     });
     socket.on('RID_UNINHIBIT_ACK', function (msg) {
-        var rid = msg.rid;
-        var channel = msg.channel;
+        var rid = msg.srcId;
+        var channel = msg.dstId;
         var bgColorClass = "bg-warning";
         var textColorClass = "text-white";
         helper.addMessage("RID Uninhibit ACK", rid, channel, bgColorClass, textColorClass, "N/A");
     });
     socket.on('PAGE_RID', function (msg) {
-        var rid = msg.rid;
-        var channel = msg.channel;
+        var rid = msg.srcId;
+        var channel = msg.dstId;
         var bgColorClass = "bg-primary";
         var textColorClass = "text-white";
         helper.addMessage("Page", rid, channel, bgColorClass, textColorClass, "N/A");
     });
     socket.on('PAGE_RID_ACK', function (msg) {
-        var rid = msg.rid;
-        var channel = msg.channel;
+        var rid = msg.srcId;
+        var channel = msg.dstId;
         var bgColorClass = "bg-success";
         var textColorClass = "text-white";
         helper.addMessage("Page ACK", rid, channel, bgColorClass, textColorClass, "N/A");
     });
     socket.on('PAGE_RID', function (msg) {
-        var rid = msg.rid;
-        var channel = msg.channel;
+        var rid = msg.srcId;
+        var channel = msg.dstId;
         var bgColorClass = "bg-primary";
         var textColorClass = "text-white";
         helper.addMessage("Page", rid, channel, bgColorClass, textColorClass, "N/A");
     });
     socket.on('REG_REFUSE', function (msg) {
-        var rid = msg.rid;
-        var channel = msg.channel;
+        var rid = msg.srcId;
+        var channel = msg.dstId;
         var bgColorClass = "bg-danger";
         var textColorClass = "text-white";
         helper.addMessage("REG Refuse", msg, "N/A", bgColorClass, textColorClass, "N/A");
