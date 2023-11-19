@@ -335,7 +335,7 @@
         });
 
         socket.on("RID_INHIBIT", function (data){
-           if (data.srcId === "<%=rid%>"){
+           if (data.dstId === "<%=rid%>"){
                socket.emit("RID_INHIBIT_ACK", {srcId: data.dstId, channel: data.srcId});
                reg_deny = true;
                voice_channel_granted = false;
