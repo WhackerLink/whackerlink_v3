@@ -1,6 +1,6 @@
 {
   "name": "whackerlink3.0",
-  "version": "1.0.0",
+  "version": "3.0.5",
   "description": "",
   "main": "index.js",
   "type": "module",
@@ -23,6 +23,6 @@
     "socket.io-client": "^4.7.2"
   },
   "devDependencies": {
-    "electron": "^26.2.0"
+    "electron": ">=26.2.4"
   }
 }
