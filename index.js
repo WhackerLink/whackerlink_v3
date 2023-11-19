@@ -146,8 +146,21 @@ try {
             res.status(500).send("Error fetching sheet data");
         }
     });
-    app.get("/radio" , (req , res)=>{
-        res.render("radio", {selected_channel: req.query.channel, rid: req.query.rid, mode: req.query.mode, zone: req.query.zone});
+    app.get("/radio", (req, res) => {
+        let radio_model = req.query.radioModel;
+        switch (radio_model) {
+            case "apx6000_non_xe_black":
+                res.render("6k_noxe_black", {selected_channel: req.query.channel, rid: req.query.rid, mode: req.query.mode, zone: req.query.zone});
+                break;
+            case "apxmobile_o2_green":
+                res.render("o2_radio", {selected_channel: req.query.channel, rid: req.query.rid, mode: req.query.mode, zone: req.query.zone});
+                break;
+            case "apx8000_xe_green":
+                res.render("o2_radio", {selected_channel: req.query.channel, rid: req.query.rid, mode: req.query.mode, zone: req.query.zone});
+                break;
+            default:
+                res.send("Invalid radio model");
+        }
     });
     app.get("/unication" , (req , res)=>{
         res.render("g5", {selected_channel: req.query.channel, rid: req.query.rid, mode: req.query.mode, zone: req.query.zone, networkName: networkName});
@@ -533,7 +546,7 @@ try {
 
         socket.on("RID_INHIBIT", async function(data) {
             if (enableDiscord && discordInhibit) {
-                sendDiscord(`Inihbit sent to ${data.srcId} on ${data.dstId} at ${data.stamp}`);
+                sendDiscord(`Inhibit sent to ${data.srcId} on ${data.dstId} at ${data.stamp}`);
             }
             data.stamp = getDaTime();
             const ridToInhibit = data.dstId;

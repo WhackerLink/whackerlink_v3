@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://code.responsivevoice.org https://app.responsivevoice.org; media-src 'self' data:">
+    <title>Whackerlink 3.0</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.1.2/socket.io.js" crossorigin="anonymous"></script>
+    <script src="https://code.responsivevoice.org/responsivevoice.js?key=PekkZld1"></script>
+</head>
+<header>
+    <div class="controller"></div>
+
+</header>
+<body>
+
+
+<script>
+
+    //toggleConnection(this)
+    //toggleMute(this)
+    //toggleMicrophone(this)
+    const userStatus = {
+        microphone: false,
+        mute: false,
+        srcId: "<%=rid%>",
+        online: false,
+        dstId: "<%=selected_channel%>",
+        controlChannel: "854.9625",
+        voiceChannel: "000.0000"
+    };
+    let voice_channel_granted = false;
+    let denied = false;
+    let reg_deny = false;
+    let inhibit = true;
+    let transmitting = false
+    let voiceChannelRequested = false;
+    let voiceChannelReleased = false;
+
+    //window.onload = (e) => {
+    function radioPowerOn()
+    {
+        document.addEventListener("keydown", function (event) {
+            if (event.code === "Space" && !voiceChannelRequested) {
+                voiceChannelRequested = true;
+                request_voice_channel();
+            }
+        });
+
+        document.addEventListener("keyup", function (event) {
+            if (event.code === "Space" && !voiceChannelReleased) {
+                voiceChannelReleased = true;
+                release_voice_channel();
+            }
+        });
+        document.addEventListener("keypress", function (event) {
+            console.log(event)
+            if (event.code === "KeyJ") {
+                send_emerg();
+            }
+        });
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+        socket.emit("REG_REQUEST", "<%= rid %>");
+
+        socket.once("REG_GRANTED", function (data) {
+            if (data === "<%= rid %>") {
+                stopBlinking();
+                updateTextContent("1", "<%=zone%>");
+                updateTextContent("2", `${userStatus.dstId}`)
+                changeMenuName("1", "Zone");
+                changeMenuName("2", "Clear");
+                changeMenuName("3", "Page");
+                changeMenuName("4", "QC");
+                changeIconImage("/files/images/apx_color_icons/wifi.png", "wifi_icon");
+                changeIconImage("/files/images/apx_color_icons/ip.png", "ip_icon");
+                changeIconImage("/files/images/apx_color_icons/gps.png", "gps_icon");
+
+                /*
+                    TODO: IMPLEMENT
+                 */
+                //changeClassSize("rssi_rcon", "3%", "8%");
+                //changeIconImage("/files/images/apx_color_icons/rssi/rssi_1.png", "rssi_icon");
+                setTimeout(()=>{
+                    responsiveVoice.speak("<%=selected_channel%>", `US English Female`,  {rate: .8});
+                },1000);
+
+                mainFunction(1000);
+                reg_deny = false;
+                inhibit = false;
+            }
+        });
+        socket.once("REG_DENIED", function (data) {
+            if (data === "<%= rid %>") {
+                stopBlinking();
+                updateTextContent("1", "Zone A");
+                updateTextContent("2", `${userStatus.dstId}`)
+                changeMenuName("1", "Zone");
+                changeMenuName("2", "Clear");
+                changeMenuName("3", "Page");
+                changeMenuName("4", "QC");
+                inhibit = false;
+                setTimeout(function () {
+                    updateTextContent("3", "Sys reg denied");
+                    reg_deny = true
+                    setInterval(function () {
+                        bonk();
+                    }, 7500)
+                }, 2500);
+                setTimeout(()=>{
+                    responsiveVoice.speak("<%=selected_channel%>", `US English Female`,  {rate: .8});
+                },1000);
+            }
+        });
+        socket.once("REG_REFUSE", function (data) {
+            if (data === "<%= rid %>") {
+                stopBlinking();
+                updateTextContent("1", "Zone A");
+                updateTextContent("2", `${userStatus.dstId}`)
+                changeMenuName("1", "Zone");
+                changeMenuName("2", "Clear");
+                changeMenuName("3", "Page");
+                changeMenuName("4", "QC");
+                inhibit = false;
+                setTimeout(function () {
+                    updateTextContent("3", "Sys reg refused");
+                    reg_deny = true
+                    setInterval(function () {
+                        bonk();
+                    }, 7500)
+                }, 2500);
+                setTimeout(()=>{
+                    responsiveVoice.speak("<%=selected_channel%>", `US English Female`,  {rate: .8});
+                },1000);
+            }
+        });
+    }
+
+    var socket = io();
+
+    socket.emit("JOIN_CONTROL_CHANNEL", { channel: userStatus.controlChannel });
+
+    socket.on("CONTROL_CHANNEL_ACK", function(data) {
+        //console.log(data.message);
+        let controlChannelAcknowledged = true;
+    });
+
+    socket.on("CONTROL_CHANNEL_ERROR", function(data) {
+        console.error(data.message);
+    });
+
+
+    socket.emit("userInformation", userStatus);
+
+    function beep(frequency, duration, volume, type) {
+        var oscillator = audioCtx.createOscillator();
+        var gainNode = audioCtx.createGain();
+
+        oscillator.connect(gainNode);
+        gainNode.connect(audioCtx.destination);
+        vol = 1;
+        gainNode.gain.value = vol;
+        oscillator.frequency.value = frequency;
+        oscillator.type = type;
+
+        oscillator.start();
+
+        setTimeout(
+            function () {
+                oscillator.stop();
+            },
+            duration
+        );
+    }
+    function tpt_generate(){
+        beep(910, 30, 20, 'sine');
+        setTimeout(function () {
+            beep(0, 20, 20, 'sine');
+        }, 30);
+        setTimeout(function () {
+            beep(910, 30, 20, 'sine');
+        }, 50);
+        setTimeout(function () {
+            beep(0, 20, 20, 'sine');
+        }, 80);
+        setTimeout(function () {
+            beep(910, 50, 20, 'sine');
+        }, 100);
+    }
+    function emergency_tone_generate(){
+        beep(610, 500, 20, 'sine');
+        setTimeout(function () {
+            beep(910, 500, 20, 'sine');
+        }, 500);
+        setTimeout(function () {
+            beep(610, 500, 20, 'sine');
+        }, 1000);
+        setTimeout(function () {
+            beep(910, 500, 20, 'sine');
+        }, 1500);
+    }
+    function bonk(){
+        beep(310, 1000, 5, 'sine');
+    }
+    window.addEventListener("beforeunload", function (e) {
+        socket.emit("REMOVE_AFFILIATION", {"srcId": "<%=rid%>", "dstId": "<%=selected_channel%>"})
+        e.returnValue = "Are you sure you want to leave the page?";
+    }, false);
+
+    function mainFunction(time) {
+        socket.emit('CHANNEL_AFFILIATION_REQUEST', {"srcId": "<%=rid%>", "dstId": "<%=selected_channel%>"})
+        startBlinking(500);
+
+        socket.on("CHANNEL_AFFILIATION_GRANTED", function (data){
+            if (data.srcId === "<%= rid %>"){
+                stopBlinking();
+                clearInterval(inter);
+                changeClassSize("rssi_icon", "10%", "8%");
+                changeIconImage("/files/images/apx_color_icons/rssi/rssi_4.png", "rssi_icon");
+            }
+        });
+        toggleConnection(this)
+
+        navigator.mediaDevices.getUserMedia({ audio: true }).then((stream) => {
+            let mediaRecorderOptions;
+            if ("<%=mode%>" === "digital"){
+                mediaRecorderOptions = {
+                    audioBitsPerSecond: 7200,
+                    bitDepth: 2,
+                    channels: 1
+                };
+            } else {
+                mediaRecorderOptions = {
+                    audioBitsPerSecond: 44100,
+                    bitDepth: 16,
+                    channels: 1
+                };
+            }
+            var mediaRecorder = new MediaRecorder(stream, mediaRecorderOptions);
+            mediaRecorder.start();
+
+            var audioChunks = [];
+
+            mediaRecorder.addEventListener("dataavailable", function (event) {
+                audioChunks.push(event.data);
+            });
+
+            mediaRecorder.addEventListener("stop", function () {
+                var audioBlob = new Blob(audioChunks);
+
+                audioChunks = [];
+
+                var fileReader = new FileReader();
+                fileReader.readAsDataURL(audioBlob);
+                fileReader.onloadend = function () {
+                    if (!voice_channel_granted) return;
+                    var base64String = fileReader.result;
+                    socket.emit("voice", base64String);
+                };
+
+                mediaRecorder.start();
+
+
+                setTimeout(function () {
+                    mediaRecorder.stop();
+                }, time);
+            });
+
+            setTimeout(function () {
+                mediaRecorder.stop();
+            }, time);
+        });
+
+
+        socket.on("send", function (data) {
+            if (!inhibit) {
+                if (data.srcId !== undefined) {
+                    if (data.srcId.toString() === "<%= rid %>" && data.dstId === "<%= selected_channel %>") {
+                        var audio = new Audio(data.newData);
+                        audio.play();
+                        //console.log(data.newData)
+                    }
+                }
+            }
+        });
+        socket.on("VOICE_CHANNEL_GRANT", function (data) {
+            //console.log("<%=selected_channel%>")
+            //console.log(data.srcId)
+            //console.log(data.dstId)
+            if (data.srcId === "<%=rid%>" && data.dstId === "<%=selected_channel%>" && !inhibit) {
+                tpt_generate();
+                stopBlinking();
+                ledOn();
+                changeClassSize("rssi_icon", "10%", "8%");
+                changeIconImage("/files/images/apx_color_icons/TX.png", "rssi_icon");
+                userStatus.microphone = !userStatus.microphone;
+                console.log("Switching to voice channel:", data.newChannel);
+                userStatus.voiceChannel = data.newChannel;
+                emitUserInformation();
+                socket.emit("VOICE_CHANNEL_CONFIRMED", {"srcId": "<%= rid %>", "dstId": "<%= selected_channel %>"});
+                voice_channel_granted = true;
+                console.log(userStatus.voiceChannel)
+                denied = false;
+            } else if(data.dstId === "<%=selected_channel%>" && !inhibit) {
+                changeClassSize("rssi_icon", "10%", "8%");
+
+                changeIconImage("/files/images/apx_color_icons/RX.png", "rssi_icon");
+                console.log("Switching to voice channel:", data.newChannel);
+                userStatus.voiceChannel = data.newChannel;
+                emitUserInformation();
+                socket.emit("VOICE_CHANNEL_CONFIRMED", {"srcId": "<%= rid %>", "dstId": "<%= selected_channel %>"});
+                updateTextContent("3", `ID: ${data.srcId}`)
+            }
+        });
+        socket.on("VOICE_CHANNEL_RELEASE", function (data){
+            if (data.srcId === "<%=rid%>" && data.dstId === "<%=selected_channel%>" && !inhibit) {
+                voice_channel_granted = false;
+                ledOff();
+                changeClassSize("rssi_icon", "10%", "8%");
+                changeIconImage("/files/images/apx_color_icons/rssi/rssi_4.png", "rssi_icon");
+                userStatus.microphone = !userStatus.microphone;
+                userStatus.voiceChannel = "000.0000";
+                emitUserInformation();
+                denied = false;
+            } else if(data.dstId === "<%=selected_channel%>" && !inhibit){
+                userStatus.voiceChannel = "000.0000";
+                changeClassSize("rssi_icon", "10%", "8%");
+                changeIconImage("/files/images/apx_color_icons/rssi/rssi_4.png", "rssi_icon");
+                emitUserInformation();
+                setTimeout(function (){
+                    updateTextContent("3", '')
+                }, 1500)
+            }
+        });
+        socket.on("VOICE_CHANNEL_DENY", function (data){
+            denied = true
+            if (data.srcId === "<%=rid%>" && data.dstId === "<%=selected_channel%>" && !inhibit) {
+                bonk();
+                stopBlinking();
+                ledOff();
+                changeClassSize("rssi_icon", "10%", "8%");
+                changeIconImage("/files/images/apx_color_icons/rssi/rssi_4.png", "rssi_icon");
+                setTimeout(function (){
+                    voiceChannelRequested = false;
+                    voiceChannelReleased = false;
+                }, 1500);
+            }
+        });
+        socket.on("EMERGENCY_CALL", function (data){
+            if (data.dstId === "<%=selected_channel%>" && !inhibit){
+                emergency_tone_generate();
+                updateTextContent("3", `EM: ${data.srcId}`)
+                setTimeout(function (){
+                    updateTextContent("3", '')
+                }, 3500)
+            }
+        });
+
+        socket.on("RID_INHIBIT", function (data){
+            if (data.dstId === "<%=rid%>"){
+                socket.emit("RID_INHIBIT_ACK", {srcId: data.dstId, channel: data.srcId});
+                reg_deny = true;
+                voice_channel_granted = false;
+                denied = true;
+                inhibit = true;
+                updateTextContent('1', '');
+                updateTextContent('2', '');
+                updateTextContent('3', '');
+                updateTextContent('4', '');
+            }
+        });
+        socket.on("RID_UNINHIBIT", function (data){
+            if (data.dstId === "<%=rid%>"){
+                socket.emit("RID_UNINHIBIT_ACK", {srcId: data.dstId, channel: data.srcId});
+                reg_deny = false;
+                denied = false;
+                inhibit = false;
+                updateTextContent('1', '');
+                updateTextContent('2', '');
+                updateTextContent('3', '');
+                updateTextContent('4', '');
+                radioPowerOn();
+            }
+        });
+        socket.on("INFORMATION_ALERT", function (data){
+            if (data.dstId === "<%=selected_channel%>") {
+                let audio = new Audio('/files/audio/info_tone.wav');
+                audio.play();
+            }
+        });
+        socket.on("CANCELLATION_ALERT", function (data){
+            if (data.dstId === "<%=selected_channel%>") {
+                let audio = new Audio('/files/audio/cancel_tone.wav');
+                audio.play();
+            }
+        });
+        socket.on("AUTO_DISPATCH_CHANNEL_BROADCAST", function(data){
+            if (data.dstId === "<%=selected_channel%>") {
+                responsiveVoice.speak(data.message, `US English Female`,  {rate: .8});
+            }
+        });
+    }
+
+    function toggleConnection(e) {
+        userStatus.online = !userStatus.online;
+        emitUserInformation();
+    }
+
+    function toggleMute(e) {
+        userStatus.mute = !userStatus.mute;
+        emitUserInformation();
+    }
+
+    function request_voice_channel(e) {
+        transmitting = true;
+        if (reg_deny && !inhibit){
+            bonk();
+        } else {
+            if (!inhibit) {
+                startBlinking(250);
+                socket.emit("VOICE_CHANNEL_REQUEST", {"srcId": "<%= rid %>", "dstId": "<%= selected_channel %>"})
+            }
+        }
+    }
+    function release_voice_channel(e) {
+        if (!denied && !inhibit && !reg_deny) {
+            socket.emit("RELEASE_VOICE_CHANNEL", {"srcId": "<%= rid %>", "dstId": "<%= selected_channel %>"})
+            voiceChannelRequested = false;
+            voiceChannelReleased = false;
+            //document.getElementById("ptt_indicator").style.display = "none";
+        } else {
+            denied = false
+        }
+    }
+
+    function editButtonClass(target, bool) {
+        const classList = target.classList;
+        classList.remove("enable-btn");
+        classList.remove("disable-btn");
+
+        if (bool)
+            return classList.add("enable-btn");
+
+        classList.add("disable-btn");
+    }
+
+    function emitUserInformation() {
+        socket.emit("userInformation", userStatus);
+    }
+    function updateTextContent(line, newText) {
+        const element = document.getElementById(`line${line}`);
+        element.innerHTML = newText;
+    }
+    function send_emerg(){
+        if (reg_deny || inhibit){
+            return;
+        }
+        socket.emit("EMERGENCY_CALL", {"srcId": "<%= rid %>", "dstId": "<%= selected_channel %>"});
+    }
+    function changeMenuName(menu_number, text){
+        let thing = document.getElementById(`menu${menu_number}`);
+        thing.innerHTML = text;
+    }
+
+    let blinkInterval;
+    let toggle = false;
+
+    function startBlinking(speed) {
+        blinkInterval = setInterval(function() {
+            var pttIndicator = document.getElementById("ptt_indicator");
+            pttIndicator.style.display = (pttIndicator.style.display == 'none' ? 'block' : 'none');
+
+                if (toggle) {
+                    changeClassSize("rssi_icon", "10%", "8%");
+                    changeIconImage("/files/images/apx_color_icons/TX.png", "rssi_icon");
+                } else {
+                    changeClassSize("rssi_icon", "10%", "8%");
+
+                    changeIconImage("/files/images/apx_color_icons/rssi/rssi_4.png", "rssi_icon");
+                }
+                toggle = !toggle;
+
+        }, speed);
+    }
+
+    function stopBlinking() {
+        clearInterval(blinkInterval);
+        document.getElementById("ptt_indicator").style.display = 'none';
+        changeClassSize("rssi_icon", "6%", "8%");
+
+        changeIconImage("/files/images/apx_color_icons/rssi/rssi_4.png", "rssi_icon");
+
+    }
+
+    function ledOn(){
+        document.getElementById("ptt_indicator").style.display = 'block';
+    }
+
+    function ledOff(){
+        document.getElementById("ptt_indicator").style.display = 'none';
+    }
+
+    function changeIconImage(url, icon) {
+        let iconElement = document.getElementById(icon);
+
+        if (iconElement.style.display !== 'block') {
+            iconElement.style.display = 'block';
+        }
+
+        iconElement.src = url;
+    }
+
+    /*
+        INITIAL CSS TESTING
+
+        rssi_1 height: 3  width: 8
+        rssi_2 height: 4  width: 8
+        rssi_3 height: 5  width: 8
+        rssi_4 height: 6  width: 8
+        tx/rx height: 6 width: 8
+        secure height: 5 width: 7
+        secure aes height: 5 width: 7
+     */
+
+    function changeClassSize(className, newHeightPercentage, newWidthPercentage) {
+        let elements = document.getElementsByClassName(className);
+        for (let i = 0; i < elements.length; i++) {
+            let initialStyles = window.getComputedStyle(elements[i]);
+            let initialHeight = initialStyles.height.replace('px', '');
+            let initialWidth = initialStyles.width.replace('px', '');
+
+            let newHeight = (parseFloat(initialHeight) * (newHeightPercentage / 100)) + 'px';
+            let newWidth = (parseFloat(initialWidth) * (newWidthPercentage / 100)) + 'px';
+
+            elements[i].style.height = newHeight;
+            elements[i].style.width = newWidth;
+        }
+    }
+</script>
+<div style="text-align: center;">
+    <div class="container">
+        <img class="image" src="/files/images/o2_green.png" alt="radio">
+
+        <img id="rssi_icon" class="rssi_icon" src="" alt="rssi">
+        <img id="secure_icon" class="secure_icon" src="" alt="secure">
+        <img id="scan_icon" class="scan_icon" src="" alt="scan">
+        <img id="wifi_icon" class="wifi_icon" src="" alt="wifi">
+        <img id="ip_icon" class="ip_icon" src="" alt="ip">
+        <img id="gps_icon" class="gps_icon" src="" alt="ip">
+
+        <div id="line1" class="line1"></div>
+        <div id="line2" class="line2"></div>
+        <div id="line3" class="line3"></div>
+
+        <div id="menu1" class="menu1"></div>
+        <div id="menu2" class="menu2"></div>
+        <div id="menu3" class="menu3"></div>
+        <div id="menu4" class="menu4"></div>
+
+        <button id="pwr_button" class="pwr_button" onclick="radioPowerOn()">PW</button>
+        <button id="emerg_button" class="emerg_button" onclick="send_emerg()">EM</button>
+        <div id="ptt_indicator" class="ptt_indicator"></div>
+        <button id="PTT" class="PTT" onmousedown="request_voice_channel(this)" onmouseup="release_voice_channel(this)" >PTT</button>
+    </div>
+</div>
+
+<link rel="stylesheet" href="/files/css/o2.css">
+</body>
+</html>
