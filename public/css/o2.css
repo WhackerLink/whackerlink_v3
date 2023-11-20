@@ -20,13 +20,13 @@ html , body {
 
 .image {
     display: block;
-    height: 200%;
-    width: 200%;
+    height: 100%;
+    width: 100%;
 }
 .line1 {
     position: absolute;
     top: 31%;
-    left: 74%;
+    left: 37.5%;
     transform: translate(-50%, -50%);
     z-index: 1;
     color: black;
@@ -38,7 +38,7 @@ html , body {
 .line2 {
     position: absolute;
     top: 39%;
-    left: 74%;
+    left: 37.5%;
     transform: translate(-50%, -50%);
     z-index: 1;
     color: black;
@@ -49,8 +49,8 @@ html , body {
 }
 .line3 {
     position: absolute;
-    top: 48%;
-    left: 73.5%;
+    top: 49%;
+    left: 37.6%;
     transform: translate(-50%, -50%);
     z-index: 1;
     color: black;
@@ -58,17 +58,19 @@ html , body {
     font-family: Helvetica, serif;
     font-weight: bold;
     text-align: center;
+    background-color: white;
+    width: 232px;
 }
 
 .pwr_button {
     position: absolute;
     border-radius: 50%;
     cursor: pointer;
-    top: 65%;
-    left: 177%;
+    top: 23%;
+    left: 13%;
     transform: translate(-50%, -50%);
     z-index: 1;
-    font-size: 53px;
+    font-size: 25px;
     font-family: Helvetica,serif;
     font-weight: bold;
     text-align: center;
@@ -83,7 +85,7 @@ html , body {
     border-radius: 100%;
     cursor: pointer;
     top: 20%;
-    left: 177%;
+    left: 88%;
     transform: translate(-50%, -50%);
     z-index: 1;
     font-size: 30px;
@@ -101,7 +103,7 @@ html , body {
     position: absolute;
     cursor: pointer;
     top: 150%;
-    left: 70%;
+    left: 50%;
     transform: translate(-50%, -50%);
     z-index: 1;
     font-size: 13px;
@@ -117,18 +119,18 @@ html , body {
 }
 .ptt_indicator {
     border-radius: 33%;
-    width: 27px;
+    width: 28px;
     height: 10px;
     background-color: red;
     display: none;
     position: absolute;
     top: 36%;
-    left: 22.2%;
+    left: 11%;
 }
 .menu1 {
     position: absolute;
     top: 57%;
-    left: 52%;
+    left: 26.5%;
     transform: translate(-50%, -50%);
     z-index: 1;
     color: white;
@@ -143,8 +145,8 @@ html , body {
 }
 .menu2 {
     position: absolute;
-    top: 57%;
-    left: 67%;
+    top: 56.5%;
+    left: 33.5%;
     transform: translate(-50%, -50%);
     z-index: 1;
     color: white;
@@ -160,7 +162,7 @@ html , body {
 .menu3 {
     position: absolute;
     top: 56.2%;
-    left: 82%;
+    left: 41%;
     transform: translate(-50%, -50%);
     z-index: 1;
     color: white;
@@ -177,7 +179,7 @@ html , body {
 .menu4 {
     position: absolute;
     top: 56.2%;
-    left: 96.5%;
+    left: 48.5%;
     transform: translate(-50%, -50%);
     z-index: 1;
     color: white;
@@ -192,59 +194,63 @@ html , body {
     padding: 2px 5px;
 }
 .rssi_icon {
-    width: 6%;
-    height: 8%;
-    background-color: transparent;
-    display: none;
-    position: absolute;
-    top: 20%;
-    left: 45%;
-}
-.secure_icon {
-    width: 5%;
-    height: 8%;
+    width: 20px;
+    height: 18px;
     background-color: transparent;
     display: none;
     position: absolute;
     top: 19.5%;
-    left: 52%;
+    left: 22.5%;
+}
+.secure_icon {
+    width: 18px;
+    height: 17px;
+    background-color: transparent;
+    display: none;
+    position: absolute;
+    top: 19.5%;
+    left: 25.5%;
 }
 .scan_icon {
-    width: 3%;
-    height: 6%;
+    width: 15px;
+    height: 15px;
     background-color: transparent;
     display: none;
     position: absolute;
     top: 20%;
-    left: 59%;
+    left: 28%;
 }
 .wifi_icon {
-    width: 3%;
-    height: 5%;
+    width: 14px;
+    height: 13px;
     background-color: transparent;
     display: none;
     position: absolute;
     top: 20%;
-    left: 74%;
+    left: 38%;
 }
 .ip_icon {
-    width: 4%;
-    height: 6%;
+    width: 14px;
+    height: 15px;
     background-color: transparent;
     display: none;
     position: absolute;
     top: 20%;
-    left: 78%;
+    left: 40%;
 }
 .gps_icon {
-    width: 4%;
-    height: 6%;
+    width: 14px;
+    height: 15px;
     background-color: transparent;
     display: none;
     position: absolute;
     top: 20%;
-    left: 84%;
+    left: 42%;
 
+}
+.page_div {
+    position: absolute;
+    top: 120%;
 }
 @keyframes flash {
     0%, 100% {

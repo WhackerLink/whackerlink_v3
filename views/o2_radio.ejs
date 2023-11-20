@@ -37,6 +37,7 @@
     let transmitting = false
     let voiceChannelRequested = false;
     let voiceChannelReleased = false;
+    let outOfRange = false;
 
     //window.onload = (e) => {
     function radioPowerOn()
@@ -76,12 +77,8 @@
                 changeIconImage("/files/images/apx_color_icons/wifi.png", "wifi_icon");
                 changeIconImage("/files/images/apx_color_icons/ip.png", "ip_icon");
                 changeIconImage("/files/images/apx_color_icons/gps.png", "gps_icon");
-
-                /*
-                    TODO: IMPLEMENT
-                 */
-                //changeClassSize("rssi_rcon", "3%", "8%");
-                //changeIconImage("/files/images/apx_color_icons/rssi/rssi_1.png", "rssi_icon");
+                changeClassSize("rssi_icon", "18px", "10px");
+                changeIconImage("/files/images/apx_color_icons/rssi/rssi_0.png", "rssi_icon");
                 setTimeout(()=>{
                     responsiveVoice.speak("<%=selected_channel%>", `US English Female`,  {rate: .8});
                 },1000);
@@ -150,6 +147,40 @@
         console.error(data.message);
     });
 
+    socket.on("disconnect", function(data) {
+        if (!inhibit) {
+            console.log("OOR");
+            changeClassColor("line3", "red")
+            updateTextContent("3", "Out of Range")
+            changeClassSize("rssi_icon", "18px", "10px");
+            changeIconImage("/files/images/apx_color_icons/rssi/rssi_0.png", "rssi_icon");
+            outOfRange = true;
+            denied = true
+        }
+    });
+
+    socket.on("connect", function (data) {
+        if (!inhibit) {
+            changeClassColor("line3", "white")
+            outOfRange = false;
+            denied = false;
+            socket.emit("JOIN_CONTROL_CHANNEL", { channel: userStatus.controlChannel });
+            socket.emit('CHANNEL_AFFILIATION_REQUEST', {"srcId": "<%=rid%>", "dstId": "<%=selected_channel%>"})
+            startBlinking(500, false);
+
+            socket.on("CHANNEL_AFFILIATION_GRANTED", function (data){
+                if (data.srcId === "<%= rid %>"){
+                    stopBlinking();
+                    changeClassSize("rssi_icon", "18px", "20px");
+                    changeIconImage("/files/images/apx_color_icons/rssi/rssi_4.png", "rssi_icon");
+                    socket.off("CHANNEL_AFFILIATION_GRANTED");
+                }
+            });
+            console.log("BACK IN RANGE");
+            changeIconImage("/files/images/apx_color_icons/rssi/rssi_4.png", "rssi_icon");
+            updateTextContent("3", "")
+        }
+    });
 
     socket.emit("userInformation", userStatus);
 
@@ -209,16 +240,34 @@
     }, false);
 
     function mainFunction(time) {
+
+        let form = document.getElementById('form');
+        let input = document.getElementById('input');
+
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            if (!inhibit){
+                if (input.value) {
+                    socket.emit('RID_PAGE', {dstId: input.value, srcId: "<%= rid %>"});
+                    input.value = '';
+                }
+            }
+        });
+
         socket.emit('CHANNEL_AFFILIATION_REQUEST', {"srcId": "<%=rid%>", "dstId": "<%=selected_channel%>"})
-        startBlinking(500);
+        startBlinking(500, false);
 
         socket.on("CHANNEL_AFFILIATION_GRANTED", function (data){
             if (data.srcId === "<%= rid %>"){
                 stopBlinking();
-                clearInterval(inter);
-                changeClassSize("rssi_icon", "10%", "8%");
+                changeClassSize("rssi_icon", "18px", "20px");
                 changeIconImage("/files/images/apx_color_icons/rssi/rssi_4.png", "rssi_icon");
             }
+            setTimeout(()=>{
+                    changeIconImage("/files/images/apx_color_icons/rssi/rssi_1.png", "rssi_icon")
+
+                changeClassSize("rssi_icon", "18px", "10px")
+            }, 10000);
         });
         toggleConnection(this)
 
@@ -292,7 +341,7 @@
                 tpt_generate();
                 stopBlinking();
                 ledOn();
-                changeClassSize("rssi_icon", "10%", "8%");
+                changeClassSize("rssi_icon", "18px", "20px");
                 changeIconImage("/files/images/apx_color_icons/TX.png", "rssi_icon");
                 userStatus.microphone = !userStatus.microphone;
                 console.log("Switching to voice channel:", data.newChannel);
@@ -303,7 +352,7 @@
                 console.log(userStatus.voiceChannel)
                 denied = false;
             } else if(data.dstId === "<%=selected_channel%>" && !inhibit) {
-                changeClassSize("rssi_icon", "10%", "8%");
+                changeClassSize("rssi_icon", "18px", "20px");
 
                 changeIconImage("/files/images/apx_color_icons/RX.png", "rssi_icon");
                 console.log("Switching to voice channel:", data.newChannel);
@@ -317,7 +366,7 @@
             if (data.srcId === "<%=rid%>" && data.dstId === "<%=selected_channel%>" && !inhibit) {
                 voice_channel_granted = false;
                 ledOff();
-                changeClassSize("rssi_icon", "10%", "8%");
+                changeClassSize("rssi_icon", "18px", "20px");
                 changeIconImage("/files/images/apx_color_icons/rssi/rssi_4.png", "rssi_icon");
                 userStatus.microphone = !userStatus.microphone;
                 userStatus.voiceChannel = "000.0000";
@@ -325,7 +374,7 @@
                 denied = false;
             } else if(data.dstId === "<%=selected_channel%>" && !inhibit){
                 userStatus.voiceChannel = "000.0000";
-                changeClassSize("rssi_icon", "10%", "8%");
+                changeClassSize("rssi_icon", "18px", "20px");
                 changeIconImage("/files/images/apx_color_icons/rssi/rssi_4.png", "rssi_icon");
                 emitUserInformation();
                 setTimeout(function (){
@@ -339,7 +388,7 @@
                 bonk();
                 stopBlinking();
                 ledOff();
-                changeClassSize("rssi_icon", "10%", "8%");
+                changeClassSize("rssi_icon", "18px", "20px");
                 changeIconImage("/files/images/apx_color_icons/rssi/rssi_4.png", "rssi_icon");
                 setTimeout(function (){
                     voiceChannelRequested = false;
@@ -348,11 +397,38 @@
             }
         });
         socket.on("EMERGENCY_CALL", function (data){
-            if (data.dstId === "<%=selected_channel%>" && !inhibit){
+            console.log(data);
+            if (data.srcId !== "<% rid %>" && data.dstId === "<%=selected_channel%>" && !inhibit){
                 emergency_tone_generate();
                 updateTextContent("3", `EM: ${data.srcId}`)
+                changeClassColor("line3", "orange")
                 setTimeout(function (){
                     updateTextContent("3", '')
+                    changeClassColor("line3", "white")
+                }, 3500)
+            }
+        });
+
+        socket.on("PAGE_RID", function (data){
+            console.log(data)
+            if (data.dstId === "<%= rid %>" && !inhibit){
+                updateTextContent("3", `Page rcv: ${data.srcId}`)
+                changeClassColor("line3", "green")
+                socket.emit("RID_PAGE_ACK", data);
+                setTimeout(function (){
+                    updateTextContent("3", '')
+                    changeClassColor("line3", "white")
+                }, 3500)
+            }
+        });
+
+        socket.on("PAGE_RID_ACK", function (data){
+            if (data.srcId === "<%= rid %>" && !inhibit){
+                updateTextContent("3", `Ack Received`)
+                changeClassColor("line3", "green")
+                setTimeout(function (){
+                    updateTextContent("3", '')
+                    changeClassColor("line3", "white")
                 }, 3500)
             }
         });
@@ -466,18 +542,22 @@
     let blinkInterval;
     let toggle = false;
 
-    function startBlinking(speed) {
+    function startBlinking(speed, test) {
         blinkInterval = setInterval(function() {
             var pttIndicator = document.getElementById("ptt_indicator");
             pttIndicator.style.display = (pttIndicator.style.display == 'none' ? 'block' : 'none');
 
                 if (toggle) {
-                    changeClassSize("rssi_icon", "10%", "8%");
+                    changeClassSize("rssi_icon", "18px", "20px");
                     changeIconImage("/files/images/apx_color_icons/TX.png", "rssi_icon");
                 } else {
-                    changeClassSize("rssi_icon", "10%", "8%");
-
-                    changeIconImage("/files/images/apx_color_icons/rssi/rssi_4.png", "rssi_icon");
+                    if (test) {
+                        changeClassSize("rssi_icon", "18px", "20px");
+                        changeIconImage("/files/images/apx_color_icons/rssi/rssi_4.png", "rssi_icon");
+                    } else {
+                        changeClassSize("rssi_icon", "18px", "10px");
+                        changeIconImage("/files/images/apx_color_icons/rssi/rssi_0.png", "rssi_icon");
+                    }
                 }
                 toggle = !toggle;
 
@@ -487,7 +567,7 @@
     function stopBlinking() {
         clearInterval(blinkInterval);
         document.getElementById("ptt_indicator").style.display = 'none';
-        changeClassSize("rssi_icon", "6%", "8%");
+        changeClassSize("rssi_icon", "18px", "20px");
 
         changeIconImage("/files/images/apx_color_icons/rssi/rssi_4.png", "rssi_icon");
 
@@ -511,32 +591,38 @@
         iconElement.src = url;
     }
 
+    function changeClassColor(className, color) {
+        let elements = document.getElementsByClassName(className);
+
+        for (let i = 0; i < elements.length; i++) {
+            elements[i].style.background = color;
+        }
+    }
+
     /*
         INITIAL CSS TESTING
 
-        rssi_1 height: 3  width: 8
-        rssi_2 height: 4  width: 8
-        rssi_3 height: 5  width: 8
-        rssi_4 height: 6  width: 8
+        rssi_1 height: 18px  width: 10px
+        rssi_2 height: 18px  width: 13px
+        rssi_3 height: 18px  width: 15px
+        rssi_4 height: 18px  width: 20px
+        // TODO: update these
         tx/rx height: 6 width: 8
         secure height: 5 width: 7
         secure aes height: 5 width: 7
      */
 
-    function changeClassSize(className, newHeightPercentage, newWidthPercentage) {
+    function changeClassSize(className, newHeight, newWidth) {
         let elements = document.getElementsByClassName(className);
+        //console.log(`Found ${elements.length} elements with class '${className}'`);
         for (let i = 0; i < elements.length; i++) {
-            let initialStyles = window.getComputedStyle(elements[i]);
-            let initialHeight = initialStyles.height.replace('px', '');
-            let initialWidth = initialStyles.width.replace('px', '');
-
-            let newHeight = (parseFloat(initialHeight) * (newHeightPercentage / 100)) + 'px';
-            let newWidth = (parseFloat(initialWidth) * (newWidthPercentage / 100)) + 'px';
-
+            //console.log(`Changing size of element ${i}`);
             elements[i].style.height = newHeight;
             elements[i].style.width = newWidth;
         }
     }
+
+
 </script>
 <div style="text-align: center;">
     <div class="container">
@@ -557,6 +643,12 @@
         <div id="menu2" class="menu2"></div>
         <div id="menu3" class="menu3"></div>
         <div id="menu4" class="menu4"></div>
+        <div id="page_div" class="page_div">
+            <form id="form" action="">
+                <label for="input">RID to page</label><input id="input" autocomplete="off" />
+                <button>Send</button>
+            </form>
+        </div>
 
         <button id="pwr_button" class="pwr_button" onclick="radioPowerOn()">PW</button>
         <button id="emerg_button" class="emerg_button" onclick="send_emerg()">EM</button>

@@ -660,11 +660,16 @@ try {
         });
         socket.on("RID_PAGE", function(data){
             data.stamp = getDaTime();
-            io.emit("PAGE_RID", data);
+            console.log("RID PAGE srcId: ", data.srcId, " dstId: ", data.dstId)
+            setTimeout(()=>{
+                io.emit("PAGE_RID", data);
+            }, 1000);
         });
         socket.on("RID_PAGE_ACK", function(data){
             data.stamp = getDaTime();
-            io.emit("PAGE_RID_ACK", data);
+            setTimeout(()=>{
+                io.emit("PAGE_RID_ACK", data);
+            }, 1500);
         });
         socket.on("FORCE_VOICE_CHANNEL_GRANT", function(data){
             forceGrant(data);
