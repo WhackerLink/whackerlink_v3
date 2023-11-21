@@ -8,6 +8,7 @@ import fs from "fs";
 import yaml from "js-yaml";
 import {google} from 'googleapis';
 import * as https from "https";
+import jwt from 'jsonwebtoken';
 
 //import io2 from "socket.io-client";
 //let peerSocket = io2("https://whackerlink.com");
@@ -62,6 +63,8 @@ try {
     const controlChannels = config.system.controlChannels;
     const voiceChannels = config.system.voiceChannels;
 
+    let authenticateToken;
+
     // const rconUsername = config.peer.username;
     // const rconPassword = config.peer.password;
     // const rconRid = config.peer.rid;
@@ -113,7 +116,6 @@ try {
     const loginsFile = fs.readFileSync(rconLogins);
     const adminUsers = JSON.parse(loginsFile);
 
-    const availableVoiceChannels = new Set(voiceChannels);
 
     app.use(session({
         secret: "super_secret_password!2",
@@ -126,6 +128,24 @@ try {
         challenge: true,
         unauthorizedResponse: "Unauthorized",
     });
+
+    if (config.configuration.apiEnable) {
+        authenticateToken = (req, res, next) => {
+            const authHeader = req.headers['authorization'];
+            const token = authHeader && authHeader.split(' ')[1];
+
+            if (token == null) return res.sendStatus(401);
+
+            jwt.verify(token, config.configuration.apiToken, (err, user) => {
+                if (err) return res.sendStatus(403);
+                req.user = user;
+                next();
+            });
+        };
+    } else {
+        console.warn("API is disabled");
+    }
+
 
     app.set("view engine", "ejs");
     app.use("/files", express.static("public"));
@@ -239,15 +259,42 @@ try {
     /*
         API routes
      */
-    app.get("/api/affs", (req, res)=>{
-        const affiliationsJSON = affiliations.map((aff) => {
-            return {
-                srcId: aff.srcId,
-                dstId: aff.dstId
-            };
+    if (config.configuration.apiEnable) {
+        app.get("/api/affs", (req, res) => {
+            const affiliationsJSON = affiliations.map((aff) => {
+                return {
+                    srcId: aff.srcId,
+                    dstId: aff.dstId
+                };
+            });
+            res.json(JSON.stringify(affiliationsJSON));
         });
-        res.json(JSON.stringify(affiliationsJSON));
-    });
+
+        app.get("/api/channels/voice/list", (req, res) => {
+           res.json(JSON.stringify(voiceChannels));
+        });
+
+        app.get("/api/channels/voice/active", (req, res) => {
+            res.json(JSON.stringify(activeVoiceChannels));
+        });
+
+        app.get("/api/aff/remove/:rid", (req, res, ) =>{
+           let status = removeAffiliation(req.params.rid);
+           if (status){
+               res.json(JSON.stringify({"status": 200}));
+           } else {
+               res.json(JSON.stringify({"status": 500}));
+           }
+        });
+
+        app.get("/api/channel/voice/release/all", (req, res, ) =>{
+            Object.keys(activeVoiceChannels).forEach(channel => {
+                delete activeVoiceChannels[channel];
+            });
+            broadcastChannelUpdates();
+            res.json(JSON.stringify({"status": 200}))
+        });
+    }
 
     async function sendDiscord(message) {
         const webhookUrl = discordWebHookUrl;
@@ -320,6 +367,7 @@ try {
         //     console.log(affiliation);
         // });
         io.emit('AFFILIATION_LOOKUP_UPDATE', affiliations);
+        return true;
     }
     function addAffiliation(rid, channel){
         affiliations.push({ srcId: rid, dstId: channel });
