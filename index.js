@@ -242,8 +242,8 @@ try {
     app.get("/api/affs", (req, res)=>{
         const affiliationsJSON = affiliations.map((aff) => {
             return {
-                rid: aff.rid,
-                channel: aff.channel
+                srcId: aff.srcId,
+                dstId: aff.dstId
             };
         });
         res.json(JSON.stringify(affiliationsJSON));
@@ -312,7 +312,7 @@ try {
     }
 
     function removeAffiliation(rid) {
-        const index = affiliations.findIndex(affiliation => affiliation.rid === rid);
+        const index = affiliations.findIndex(affiliation => affiliation.srcId === rid);
         if (index !== -1) {
             affiliations.splice(index, 1);
         }
@@ -322,16 +322,16 @@ try {
         io.emit('AFFILIATION_LOOKUP_UPDATE', affiliations);
     }
     function addAffiliation(rid, channel){
-        affiliations.push({ rid: rid, channel: channel });
+        affiliations.push({ srcId: rid, dstId: channel });
         io.emit('AFFILIATION_LOOKUP_UPDATE', affiliations);
     }
     function getAffiliation(rid) {
-        const affiliation = affiliations.find(affiliation => affiliation.rid === rid);
+        const affiliation = affiliations.find(affiliation => affiliation.srcId === rid);
         return affiliation ? affiliation.channel : false;
     }
 
     function isRadioAffiliated(srcId, dstId) {
-        return affiliations.some(affiliation => affiliation.rid === srcId && affiliation.channel === dstId);
+        return affiliations.some(affiliation => affiliation.srcId === srcId && affiliation.dstId === dstId);
     }
 
     function forceGrant(data){

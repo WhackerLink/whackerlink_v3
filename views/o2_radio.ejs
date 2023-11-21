@@ -219,6 +219,29 @@
             beep(910, 50, 20, 'sine');
         }, 100);
     }
+
+    function play_page_alert(){
+        beep(910, 150, 20, 'sine');
+        setTimeout(function () {
+            beep(0, 150, 20, 'sine');
+        }, 150);
+        setTimeout(()=>{
+            beep(910, 150, 20, 'sine');
+        }, 300);
+        setTimeout(()=>{
+            beep(0, 150, 20, 'sine');
+        }, 450);
+        setTimeout(()=>{
+            beep(910, 150, 20, 'sine');
+        }, 600);
+        setTimeout(()=>{
+            beep(0, 150, 20, 'sine');
+        }, 750);
+        setTimeout(()=>{
+            beep(910, 150, 20, 'sine');
+        }, 900);
+    }
+
     function emergency_tone_generate(){
         beep(610, 500, 20, 'sine');
         setTimeout(function () {
@@ -412,6 +435,7 @@
         socket.on("PAGE_RID", function (data){
             console.log(data)
             if (data.dstId === "<%= rid %>" && !inhibit){
+                play_page_alert();
                 updateTextContent("3", `Page rcv: ${data.srcId}`)
                 changeClassColor("line3", "green")
                 socket.emit("RID_PAGE_ACK", data);

@@ -16,6 +16,8 @@
 
     function main(){
         socket.emit("AFFILIATION_LIST_REQUEST");
+        socket.emit("JOIN_CONTROL_CHANNEL", { channel: "854.9625" });
+
         socket.on("AFFILIATION_LOOKUP_UPDATE", function (data) {
             console.log(`UPDATED: ${data}`)
             const affiliationsTableBody = document.getElementById("affiliationsTableBody");
@@ -27,19 +29,20 @@
                 const cell1 = newRow.insertCell(0);
                 const cell2 = newRow.insertCell(1);
 
-                cell1.textContent = affiliation.rid;
-                cell2.textContent = affiliation.channel;
+                cell1.textContent = affiliation.srcId;
+                cell2.textContent = affiliation.dstId;
 
-                newRow.setAttribute("data-rid", affiliation.rid);
-                newRow.setAttribute("data-channel", affiliation.channel);
+                newRow.setAttribute("data-rid", affiliation.srcId);
+                newRow.setAttribute("data-channel", affiliation.dstId);
 
                 socket.on("VOICE_CHANNEL_GRANT", function (voiceData) {
-                    if (affiliation.rid === voiceData.rid && affiliation.channel === voiceData.channel) {
+                    console.log(voiceData)
+                    if (affiliation.srcId === voiceData.srcId && affiliation.dstId === voiceData.dstId) {
                         newRow.classList.add("table-primary");
                     }
                 });
                 socket.on("VOICE_CHANNEL_RELEASE", function (voiceData) {
-                    if (affiliation.rid === voiceData.rid && affiliation.channel === voiceData.channel) {
+                    if (affiliation.srcId === voiceData.srcId && affiliation.dstId === voiceData.dstId) {
                         newRow.classList.remove("table-success");
                         newRow.classList.remove("table-primary");
                         newRow.classList.remove("table-secondary");
@@ -59,8 +62,8 @@
     <table class="table table-bordered">
         <thead>
         <tr>
-            <th>Radio ID</th>
-            <th>Channel</th>
+            <th>srcId</th>
+            <th>dstId</th>
         </tr>
         </thead>
         <tbody id="affiliationsTableBody">
