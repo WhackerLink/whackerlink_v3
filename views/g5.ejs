@@ -32,9 +32,11 @@
     const userStatus = {
         microphone: false,
         mute: false,
-        username: "01",
+        srcId: "0101010101",
         online: false,
-        channel: "<%=selected_channel%>"
+        dstId: "<%=selected_channel%>",
+        controlChannel: "854.9625",
+        voiceChannel: "000.0000"
     };
     let receiving = false;
     let transmitting = false;
@@ -89,25 +91,33 @@
         }, 1500);
     }
     function mainFunction(time) {
-
+        socket.emit("JOIN_CONTROL_CHANNEL", { channel: userStatus.controlChannel });
         toggleConnection(this)
         let audio = new Audio('/files/audio/trunking_tg_priority.wav');
         audio.play();
         socket.on("send", function (data) {
-            if (data.channel === "<%=selected_channel%>") {
+            console.log(data)
+            if (data.dstId === "<%=selected_channel%>") {
                 var audio = new Audio(data.newData);
                 audio.play();
             }
         });
         socket.on("VOICE_CHANNEL_GRANT", function (data) {
-            if(data.channel === "<%=selected_channel%>") {
-                updateTextContent("1", `To:${data.channel}`);
-                updateTextContent("3", `Fm:[${data.rid}]`);
+            if(data.dstId === "<%=selected_channel%>") {
+                console.log("Switching to voice channel:", data.newChannel);
+                userStatus.voiceChannel = data.newChannel;
+                emitUserInformation();
+                socket.emit("VOICE_CHANNEL_CONFIRMED", {"srcId": "<%= rid %>", "dstId": "<%= selected_channel %>"});
+
+                updateTextContent("1", `To:${data.dstId}`);
+                updateTextContent("3", `Fm:[${data.srcId}]`);
                 updateTextContent("2", '');
             }
         });
         socket.on("VOICE_CHANNEL_RELEASE", function (data){
-            if(data.channel === "<%=selected_channel%>"){
+            if(data.dstId === "<%=selected_channel%>"){
+                userStatus.voiceChannel = "000.0000";
+                emitUserInformation();
                 setTimeout(function (){
                     updateTextContent("1", current_zone);
                     updateTextContent("2", current_channel);
@@ -117,7 +127,7 @@
         });
         socket.on("VOICE_CHANNEL_DENY", function (data){
             denied = true
-            if (data.rid === "<%=rid%>" && data.channel === "<%=selected_channel%>" && !inhibit) {
+            if (data.srcId === "<%=rid%>" && data.channel === "<%=selected_channel%>" && !inhibit) {
                 bonk();
                 setTimeout(function (){
                     voiceChannelRequested = false;
@@ -126,9 +136,9 @@
             }
         });
         socket.on("EMERGENCY_CALL", function (data){
-            if (data.channel === "<%=selected_channel%>" && !inhibit){
+            if (data.dstId === "<%=selected_channel%>" && !inhibit){
                 emergency_tone_generate();
-                updateTextContent("3", `EM:<br />${data.rid}`)
+                updateTextContent("3", `EM:<br />${data.srcId}`)
                 setTimeout(function (){
                     updateTextContent("3", '')
                 }, 3500)
@@ -146,7 +156,7 @@
                 audio.play();
             }
         });
-        socket.on("PAGE_RID", function(data){
+/*        socket.on("PAGE_RID", function(data){
             let page_rcv;
             if (!inhibit && !reg_deny && data.channel === "<%=rid%>"){
                 page_rcv = true;
@@ -157,7 +167,7 @@
                 }, 3000);
                 socket.emit('RID_PAGE_ACK', data);
             }
-        });
+        });*/
     }
 
     function toggleConnection(e) {

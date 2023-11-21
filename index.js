@@ -376,7 +376,7 @@ try {
         socket.on("VOICE_CHANNEL_CONFIRMED", function (data) {
             if (data.srcId && grantedChannels[data.dstId]) {
                 socketsStatus[socketId].voiceChannelActive = true;
-                console.log(`Voice channel confirmed ${data.srcId} on ${data.dstId}`);
+               // console.log(`Voice channel confirmed ${data.srcId} on ${data.dstId}`);
             }
         });
 
@@ -626,7 +626,7 @@ try {
                             io.emit("REG_GRANTED", rid);
                             console.log("REG_GRANTED: " + rid);
                         } else {
-                            io.emit("RID_INHIBIT", {channel: rid, rid: "999999999"});
+                            io.emit("RID_INHIBIT", {srcId: rid, dstId: "999999999"});
                         }
                     } else {
                         if (denyCount >= 3){

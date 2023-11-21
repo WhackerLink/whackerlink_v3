@@ -80,7 +80,7 @@
                 changeClassSize("rssi_icon", "18px", "10px");
                 changeIconImage("/files/images/apx_color_icons/rssi/rssi_0.png", "rssi_icon");
                 setTimeout(()=>{
-                    responsiveVoice.speak("<%=selected_channel%>", `US English Female`,  {rate: .8});
+                    responsiveVoice.speak("<%=selected_channel%>", `US English Male`,  {rate: .8});
                 },1000);
 
                 mainFunction(1000);
@@ -106,7 +106,7 @@
                     }, 7500)
                 }, 2500);
                 setTimeout(()=>{
-                    responsiveVoice.speak("<%=selected_channel%>", `US English Female`,  {rate: .8});
+                    responsiveVoice.speak("<%=selected_channel%>", `US English Male`,  {rate: .8});
                 },1000);
             }
         });
@@ -128,7 +128,7 @@
                     }, 7500)
                 }, 2500);
                 setTimeout(()=>{
-                    responsiveVoice.speak("<%=selected_channel%>", `US English Female`,  {rate: .8});
+                    responsiveVoice.speak("<%=selected_channel%>", `US English Male`,  {rate: .8});
                 },1000);
             }
         });
@@ -473,7 +473,7 @@
         });
         socket.on("AUTO_DISPATCH_CHANNEL_BROADCAST", function(data){
             if (data.dstId === "<%=selected_channel%>") {
-                responsiveVoice.speak(data.message, `US English Female`,  {rate: .8});
+                responsiveVoice.speak(data.message, `US English Male`,  {rate: .8});
             }
         });
     }
