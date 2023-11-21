@@ -23,6 +23,8 @@ configuration:
   discordWebHookEnable: false #Enable discord functions
   discordWebHookUrl: '' #Webhook URL
   httpsEnable: true #Do not change unless going through a proxy. This will NOT work unless it is https
+  apiEnable: true
+  apiToken: "biglongtoken"
 
 peer: #Currently WIP no need to touch
   externalPeerEnable: false #Enable external software peering
