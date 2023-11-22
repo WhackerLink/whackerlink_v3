@@ -1,5 +1,4 @@
 import express from "express";
-import basicAuth from "express-basic-auth";
 import session from "express-session";
 import http from "http";
 import {Server as SocketIOServer} from "socket.io";
@@ -9,6 +8,8 @@ import yaml from "js-yaml";
 import {google} from 'googleapis';
 import * as https from "https";
 import jwt from 'jsonwebtoken';
+import bcrypt from 'bcrypt';
+import db from './db.js';
 
 //import io2 from "socket.io-client";
 //let peerSocket = io2("https://whackerlink.com");
@@ -120,14 +121,11 @@ try {
     app.use(session({
         secret: "super_secret_password!2",
         resave: false,
-        saveUninitialized: true
+        saveUninitialized: true,
+        cookie: { secure: 'auto', maxAge: 3600000 }
     }));
 
-    const auth = basicAuth({
-        users: adminUsers,
-        challenge: true,
-        unauthorizedResponse: "Unauthorized",
-    });
+    app.use(express.urlencoded({ extended: true }));
 
     if (config.configuration.apiEnable) {
         authenticateToken = (req, res, next) => {
@@ -146,40 +144,260 @@ try {
         console.warn("API is disabled");
     }
 
-
     app.set("view engine", "ejs");
     app.use("/files", express.static("public"));
     /*
         User interface routes
      */
     app.get("/" , async (req , res)=>{
-        try {
-            const sheetTabs = await getSheetTabs(googleSheetClient, sheetId);
-            const zoneData = [];
-            for (const tab of sheetTabs) {
-                const tabData = await readGoogleSheet(googleSheetClient, sheetId, tab, "A:B");
-                zoneData.push({ zone: tab, content: tabData });
-            }
-            res.render("index", {zoneData, networkName});
-        } catch (error) {
-            console.error("Error fetching sheet data:", error);
-            res.status(500).send("Error fetching sheet data");
+        if (!req.session.user) {
+            res.redirect('/login');
+        } else {
+            res.redirect("/user_dashboard")
         }
     });
+    app.get("/user_dashboard" , async (req , res)=>{
+        if (req.session.user) {
+            try {
+                const sheetTabs = await getSheetTabs(googleSheetClient, sheetId);
+                const zoneData = [];
+                for (const tab of sheetTabs) {
+                    const tabData = await readGoogleSheet(googleSheetClient, sheetId, tab, "A:B");
+                    zoneData.push({zone: tab, content: tabData});
+                }
+                res.render("index", {zoneData, networkName, user: req.session.user});
+            } catch (error) {
+                console.error("Error fetching sheet data:", error);
+                res.status(500).send("Error fetching sheet data");
+            }
+        } else {
+            res.redirect("/login")
+        }
+    });
+
+    app.get('/users', (req, res) => {
+
+        if (req.session.user && req.session.user.level === "admin") {
+            db.all('SELECT id, username, password, mainRid FROM users', [], (err, rows) => {
+                if (err) {
+                    res.status(500).send('Error retrieving users');
+                    console.error(err.message);
+                } else {
+                    res.render('users', {users: rows});
+                }
+            });
+        } else {
+            res.send("Invalid permissions");
+        }
+    });
+
+    app.get('/edit/:id', (req, res) => {
+        const userId = req.params.id;
+        if (req.session.user && req.session.user.level === "admin") {
+            db.get('SELECT * FROM users WHERE id = ?', [userId], (err, user) => {
+                if (err) {
+                    res.status(500).send('Error retrieving user');
+                    console.error(err.message);
+                    return;
+                }
+                res.render('edit.ejs', {user: user});
+            });
+        } else if(req.session.user.id == userId) {
+            db.get('SELECT * FROM users WHERE id = ?', [userId], (err, user) => {
+                if (err) {
+                    res.status(500).send('Error retrieving user');
+                    console.error(err.message);
+                    return;
+                }
+                res.render('edit.ejs', {user: user});
+            });
+        } else {
+            res.send("Invalid permissions");
+        }
+    });
+
+    app.get('/delete/:id', (req, res) => {
+        const userId = req.params.id;
+        if (req.session.user && req.session.user.level === "admin") {
+            db.get('SELECT * FROM users WHERE id = ?', [userId], (err, user) => {
+                if (err) {
+                    res.status(500).send('Error retrieving user');
+                    console.error(err.message);
+                    return;
+                }
+                res.render('delete.ejs', {user: user});
+            });
+        } else {
+            res.send("Invalid permissions");
+        }
+    });
+
+
+    app.post('/update/:id', (req, res) => {
+        const userId = req.params.id;
+        const { username, mainRid, level } = req.body;
+        if (req.session.user && req.session.user.level === "admin") {
+            db.run('UPDATE users SET username = ?, mainRid = ?, level = ? WHERE id = ?', [username, mainRid, level, userId], function (err) {
+                if (err) {
+                    res.status(500).send("Error updating user");
+                    console.error(err.message);
+                    return;
+                }
+                console.log(`User with ID: ${userId} has been updated.`);
+                res.redirect('/users');
+            });
+        } else if(req.session.user.id === userId) {
+            db.run('UPDATE users SET username = ?, mainRid = ?, level = ? WHERE id = ?', [username, mainRid, level, userId], function (err) {
+                if (err) {
+                    res.status(500).send("Error updating user");
+                    console.error(err.message);
+                    return;
+                }
+                console.log(`User with ID: ${userId} has been updated.`);
+                res.redirect('/user_dashboard');
+            });
+        } else {
+            res.send("Invalid permissions");
+        }
+    });
+
+    app.post('/delete/:id', (req, res) => {
+        const userId = req.params.id;
+        if (req.session.user && req.session.user.level === "admin") {
+            db.run('DELETE FROM users WHERE id = ?', [userId], function (err) {
+                if (err) {
+                    res.status(500).send("Error updating user");
+                    console.error(err.message);
+                    return;
+                }
+                console.log(`User with ID: ${userId} has been DELETED.`);
+                res.redirect('/users');
+            });
+        } else {
+            res.send("Invalid permissions");
+        }
+    });
+
+    app.get('/register', (req, res) => {
+        res.render('register');
+    });
+
+    app.post('/register', (req, res) => {
+        let { username, password, mainRid } = req.body;
+
+        if (!username || !password) {
+            return res.status(400).send("Username and password and main rid are required");
+        } else if(!mainRid){
+            mainRid = "Not Assigned";
+        }
+
+        let level = "operator";
+
+        let saltRounds = 10;
+
+        bcrypt.hash(password, saltRounds, function(err, hash) {
+            if (err) {
+                console.error(err.message);
+                return res.status(500).send("Error hashing password");
+            }
+
+            db.get('SELECT id FROM users WHERE username = ?', [username], (err, row) => {
+                if (err) {
+                    console.error(err.message);
+                    return res.status(500).send("Error checking user existence");
+                }
+
+                if (row) {
+                    return res.status(409).send("User already exists");
+                }
+
+                db.run('INSERT INTO users (username, password, mainRid, level) VALUES (?, ?, ?, ?)', [username, hash, mainRid, level], function(err) {
+                    if (err) {
+                        console.error(err.message);
+                        return res.status(500).send("Error registering user");
+                    }
+                    console.log(level)
+                    console.log(`A new user has been created with ID: ${this.lastID}`);
+                    const message = 'Registered successfully!';
+                    const redirectUrl = '/login';
+
+                    res.send(`
+                            <html>
+                                <head>
+                                    <title>Registered</title>
+                                    Registered. Redirecting to login
+                                    <script>
+                                        setTimeout(function() {
+                                            window.location.href = '${redirectUrl}';
+                                        }, 3000);
+                                    </script>
+                                </head>
+                            </html>
+                    `);
+                });
+            });
+        });
+    });
+
+    app.get('/login', (req, res) => {
+        res.render('login');
+    });
+
+    app.post('/login', (req, res) => {
+        const { username, password } = req.body;
+
+        db.get('SELECT id, username, password, level, mainRid FROM users WHERE username = ?', [username], (err, row) => {
+            if (err) {
+                return res.status(500).send('Error on the server.');
+            }
+            if (!row) {
+                return res.status(404).send('User not found.');
+            }
+
+            bcrypt.compare(password, row.password, function(err, result) {
+                if (result) {
+                    req.session.user = {
+                        id: row.id,
+                        username: row.username,
+                        mainRid: row.mainRid,
+                        level: row.level
+                    };
+                    res.redirect("/user_dashboard")
+                } else {
+                    res.status(401).send('Password is incorrect.');
+                }
+            });
+        });
+    });
+
+    app.get('/logout', (req, res) => {
+        req.session.destroy(err => {
+            if (err) {
+                return res.status(500).send('Could not log out  try again.');
+            }
+            res.redirect('/login');
+        });
+    });
+
     app.get("/radio", (req, res) => {
         let radio_model = req.query.radioModel;
-        switch (radio_model) {
-            case "apx6000_non_xe_black":
-                res.render("6k_noxe_black", {selected_channel: req.query.channel, rid: req.query.rid, mode: req.query.mode, zone: req.query.zone});
-                break;
-            case "apxmobile_o2_green":
-                res.render("o2_radio", {selected_channel: req.query.channel, rid: req.query.rid, mode: req.query.mode, zone: req.query.zone});
-                break;
-            case "apx8000_xe_green":
-                res.render("o2_radio", {selected_channel: req.query.channel, rid: req.query.rid, mode: req.query.mode, zone: req.query.zone});
-                break;
-            default:
-                res.send("Invalid radio model");
+        if (req.session.user) {
+            // ${req.session.user.username}
+            switch (radio_model) {
+                case "apx6000_non_xe_black":
+                    res.render("6k_noxe_black", {selected_channel: req.query.channel, rid: req.query.rid, mode: req.query.mode, zone: req.query.zone, logged_in_user: req.session.user});
+                    break;
+                case "apxmobile_o2_green":
+                    res.render("o2_radio", {selected_channel: req.query.channel, rid: req.query.rid, mode: req.query.mode, zone: req.query.zone, logged_in_user: req.session.user});
+                    break;
+                case "apx8000_xe_green":
+                    res.render("o2_radio", {selected_channel: req.query.channel, rid: req.query.rid, mode: req.query.mode, zone: req.query.zone, logged_in_user: req.session.user});
+                    break;
+                default:
+                    res.send("Invalid radio model");
+            }
+        } else {
+            res.redirect("/login")
         }
     });
     app.get("/unication" , (req , res)=>{
@@ -217,8 +435,12 @@ try {
     app.get("/sys_view" , (req , res)=>{
         res.render("systemView", {networkName});
     });
-    app.get("/sys_view/admin",auth, (req , res)=>{
-        res.render("adminView", {networkName});
+    app.get("/sys_view/admin", (req , res)=>{
+        if (req.session.user && req.session.user.level === "admin") {
+            res.render("adminView", {networkName});
+        } else {
+            res.send("Invalid permissions");
+        }
     });
     app.get("/affiliations" , (req , res)=>{
         res.render("affiliations", {affiliations, networkName});
@@ -242,7 +464,7 @@ try {
         res.render("sysWatch", { networkName: networkName, controlChannels: controlChannels });
     });
 
-    app.get("/auto" , auth, async (req , res)=>{
+    app.get("/auto" , async (req , res)=>{
         try {
             const sheetTabs = await getSheetTabs(googleSheetClient, sheetId);
             const zoneData = [];
