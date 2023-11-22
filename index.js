@@ -204,7 +204,7 @@ try {
                     console.error(err.message);
                     return;
                 }
-                res.render('edit.ejs', {user: user});
+                res.render('edit.ejs', {user: user, loggedinuser: req.session.user});
             });
         } else if(req.session.user.id == userId) {
             db.get('SELECT * FROM users WHERE id = ?', [userId], (err, user) => {
@@ -213,7 +213,7 @@ try {
                     console.error(err.message);
                     return;
                 }
-                res.render('edit.ejs', {user: user});
+                res.render('edit.ejs', {user: user, loggedinuser: req.session.user});
             });
         } else {
             res.send("Invalid permissions");
