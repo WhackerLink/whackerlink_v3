@@ -3,9 +3,9 @@ system:
   networkBindAddress: '0.0.0.0' #Bind to address for the network
   networkBindPort: 3000 #Bind to port for the network
 
-  controlChannels: #Multiple control channels work, but don't touch any of this for now. It is static in the client file.
-    - "854.9625"
-    - "857.9625" #You will not see this ever active by default at this time. Again, don't touch control channels.
+  controlChannels: #Multiple control channels work, but doesnt do much for now.
+    - "854.9625" #Change to what you want really doesnt matter
+    - "857.9625" #You will not see this ever active by default at this time. Remove if you want or add more if you want.
 
   voiceChannels: #Have as many as you want and your hosting server can handle. If all voice channels are in use, radios will get denied.
     - "853.9625"

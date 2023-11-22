@@ -385,13 +385,13 @@ try {
             // ${req.session.user.username}
             switch (radio_model) {
                 case "apx6000_non_xe_black":
-                    res.render("6k_noxe_black", {selected_channel: req.query.channel, rid: req.query.rid, mode: req.query.mode, zone: req.query.zone, logged_in_user: req.session.user, endPointForClient: config.configuration.endPointForClient, socketAuthToken: config.configuration.socketAuthToken});
+                    res.render("6k_noxe_black", {selected_channel: req.query.channel, rid: req.query.rid, mode: req.query.mode, zone: req.query.zone, logged_in_user: req.session.user, endPointForClient: config.configuration.endPointForClient, socketAuthToken: config.configuration.socketAuthToken, controlChannel: controlChannels[0]});
                     break;
                 case "apxmobile_o2_green":
-                    res.render("o2_radio", {selected_channel: req.query.channel, rid: req.query.rid, mode: req.query.mode, zone: req.query.zone, logged_in_user: req.session.user, endPointForClient: config.configuration.endPointForClient, socketAuthToken: config.configuration.socketAuthToken});
+                    res.render("o2_radio", {selected_channel: req.query.channel, rid: req.query.rid, mode: req.query.mode, zone: req.query.zone, logged_in_user: req.session.user, endPointForClient: config.configuration.endPointForClient, socketAuthToken: config.configuration.socketAuthToken, controlChannel: controlChannels[0]});
                     break;
                 case "apx8000_xe_green":
-                    res.render("o2_radio", {selected_channel: req.query.channel, rid: req.query.rid, mode: req.query.mode, zone: req.query.zone, logged_in_user: req.session.user, endPointForClient: config.configuration.endPointForClient, socketAuthToken: config.configuration.socketAuthToken});
+                    res.render("o2_radio", {selected_channel: req.query.channel, rid: req.query.rid, mode: req.query.mode, zone: req.query.zone, logged_in_user: req.session.user, endPointForClient: config.configuration.endPointForClient, socketAuthToken: config.configuration.socketAuthToken, controlChannel: controlChannels[0]});
                     break;
                 default:
                     res.send("Invalid radio model");
