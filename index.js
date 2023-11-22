@@ -16,6 +16,7 @@ import * as https from "https";
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
 import db from './db.js';
+import path from 'path';
 
 //import io2 from "socket.io-client";
 //let peerSocket = io2("https://whackerlink.com");
@@ -144,6 +145,7 @@ try {
         });
     }
 
+    app.set('views', path.join(__dirname, 'views'))
     app.set("view engine", "ejs");
     app.use("/files", express.static("public"));
     /*
