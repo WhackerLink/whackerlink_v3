@@ -22,7 +22,9 @@
 </div>
 
 <script>
-    const socket = io();
+    var socket = io.connect("<%= endPointForClient %>", {
+        query: { token: "<%= socketAuthToken %>" }
+    });
 
     socket.on('updateChannels', function(channels) {
         channels.forEach(channelInfo => {

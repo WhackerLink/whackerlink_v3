@@ -55,7 +55,9 @@
         }, 2000);
     }
 
-    var socket = io();
+    var socket = io.connect("<%= endPointForClient %>", {
+        query: { token: "<%= socketAuthToken %>" }
+    });
     socket.emit("userInformation", userStatus);
 
     function beep(frequency, duration, volume, type) {

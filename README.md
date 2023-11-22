@@ -31,6 +31,8 @@ Setup the config files. Rename the `config.example.yml` file to `config.yml` and
 
 Put the google json file into the root directory of whackerlink and rename it to `google.json`. Open the `config.yml` file and under the `‘sheetsJson: './something-124.json'` change `‘./something-124.json’` to `‘google.json’`. Under the sheetsID put the google sheet that the rids and channels are listed in. The ID should look something like this: `14KmRdIIGcLWQnM4sWBKFxJOmqj7-Mh0vXO8taKsEgJU`. You can find this in the URL of your sheet while viewing.
 
+Make sure to run toke_generator.js to generate your JWT for socket use. This is a must and a huge security upgrade.
+
 ### Run WhackerLink
 
 Copy the directory your whackerlink files are in and open CMD. Run the command `cd "directory"` and then put the location of the folder in there and hit enter. After that run `npm i` and then `node index.js -c config.yml` and go to `http://localhost:3000` that whackerlink is running on.
@@ -41,11 +43,13 @@ npm i
 node index.js -c config.yml
 ```
 
-### Step 8:
+###
 
 Enjoy whackerlink. Use `/sys_view` and `/sys_view/admin` at the end of the URL to look at status. Example: `http://localhost:3000/sys_view`
 
 ## Images:
+
+(Images from Collin, K0NNK)
 
 ### Google Dev setup:
 

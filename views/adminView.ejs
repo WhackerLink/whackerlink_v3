@@ -27,7 +27,9 @@
     </style>
 </head>
 <script>
-    var socket = io();
+    var socket = io.connect("<%= endPointForClient %>", {
+        query: { token: "<%= socketAuthToken %>" }
+    });
 </script>
 <body class="bg-dark text-light">
 

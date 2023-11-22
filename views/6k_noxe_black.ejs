@@ -129,7 +129,9 @@
         });
     }
 
-    var socket = io();
+    var socket = io.connect("<%= endPointForClient %>", {
+        query: { token: "<%= socketAuthToken %>" }
+    });
 
     socket.emit("JOIN_CONTROL_CHANNEL", { channel: userStatus.controlChannel });
 

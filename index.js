@@ -1,3 +1,9 @@
+/*
+    Written by Caleb, KO4UYJ
+    Discord: _php_
+    Email: ko4uyj@gmail.com
+ */
+
 import express from "express";
 import session from "express-session";
 import http from "http";
@@ -64,8 +70,6 @@ try {
     const controlChannels = config.system.controlChannels;
     const voiceChannels = config.system.voiceChannels;
 
-    let authenticateToken;
-
     // const rconUsername = config.peer.username;
     // const rconPassword = config.peer.password;
     // const rconRid = config.peer.rid;
@@ -127,21 +131,17 @@ try {
 
     app.use(express.urlencoded({ extended: true }));
 
-    if (config.configuration.apiEnable) {
-        authenticateToken = (req, res, next) => {
-            const authHeader = req.headers['authorization'];
-            const token = authHeader && authHeader.split(' ')[1];
+    function authenticateToken(req, res, next) {
+        const authHeader = req.headers['authorization'];
+        const token = authHeader && authHeader.split(' ')[1];
 
-            if (token == null) return res.sendStatus(401);
+        if (token == null) return res.sendStatus(401);
 
-            jwt.verify(token, config.configuration.apiToken, (err, user) => {
-                if (err) return res.sendStatus(403);
-                req.user = user;
-                next();
-            });
-        };
-    } else {
-        console.warn("API is disabled");
+        jwt.verify(token, config.configuration.socketAuthToken, (err, user) => {
+            if (err) return res.sendStatus(403);
+            req.user = user;
+            next();
+        });
     }
 
     app.set("view engine", "ejs");
@@ -165,7 +165,7 @@ try {
                     const tabData = await readGoogleSheet(googleSheetClient, sheetId, tab, "A:B");
                     zoneData.push({zone: tab, content: tabData});
                 }
-                res.render("index", {zoneData, networkName, user: req.session.user});
+                res.render("index", {zoneData, networkName, user: req.session.user, endPointForClient: config.configuration.endPointForClient, socketAuthToken: config.configuration.socketAuthToken});
             } catch (error) {
                 console.error("Error fetching sheet data:", error);
                 res.status(500).send("Error fetching sheet data");
@@ -385,13 +385,13 @@ try {
             // ${req.session.user.username}
             switch (radio_model) {
                 case "apx6000_non_xe_black":
-                    res.render("6k_noxe_black", {selected_channel: req.query.channel, rid: req.query.rid, mode: req.query.mode, zone: req.query.zone, logged_in_user: req.session.user});
+                    res.render("6k_noxe_black", {selected_channel: req.query.channel, rid: req.query.rid, mode: req.query.mode, zone: req.query.zone, logged_in_user: req.session.user, endPointForClient: config.configuration.endPointForClient, socketAuthToken: config.configuration.socketAuthToken});
                     break;
                 case "apxmobile_o2_green":
-                    res.render("o2_radio", {selected_channel: req.query.channel, rid: req.query.rid, mode: req.query.mode, zone: req.query.zone, logged_in_user: req.session.user});
+                    res.render("o2_radio", {selected_channel: req.query.channel, rid: req.query.rid, mode: req.query.mode, zone: req.query.zone, logged_in_user: req.session.user, endPointForClient: config.configuration.endPointForClient, socketAuthToken: config.configuration.socketAuthToken});
                     break;
                 case "apx8000_xe_green":
-                    res.render("o2_radio", {selected_channel: req.query.channel, rid: req.query.rid, mode: req.query.mode, zone: req.query.zone, logged_in_user: req.session.user});
+                    res.render("o2_radio", {selected_channel: req.query.channel, rid: req.query.rid, mode: req.query.mode, zone: req.query.zone, logged_in_user: req.session.user, endPointForClient: config.configuration.endPointForClient, socketAuthToken: config.configuration.socketAuthToken});
                     break;
                 default:
                     res.send("Invalid radio model");
@@ -401,7 +401,7 @@ try {
         }
     });
     app.get("/unication" , (req , res)=>{
-        res.render("g5", {selected_channel: req.query.channel, rid: req.query.rid, mode: req.query.mode, zone: req.query.zone, networkName: networkName});
+        res.render("g5", {selected_channel: req.query.channel, rid: req.query.rid, mode: req.query.mode, zone: req.query.zone, networkName: networkName, endPointForClient: config.configuration.endPointForClient, socketAuthToken: config.configuration.socketAuthToken});
     });
     app.get("/g5" , async (req , res)=>{
         try {
@@ -411,7 +411,7 @@ try {
                 const tabData = await readGoogleSheet(googleSheetClient, sheetId, tab, "A:B");
                 zoneData.push({ zone: tab, content: tabData });
             }
-            res.render("uniLanding", {zoneData, networkName});
+            res.render("uniLanding", {zoneData, networkName, endPointForClient: config.configuration.endPointForClient, socketAuthToken: config.configuration.socketAuthToken});
         } catch (error) {
             console.error("Error fetching sheet data:", error);
             res.status(500).send("Error fetching sheet data");
@@ -426,24 +426,24 @@ try {
                 const tabData = await readGoogleSheet(googleSheetClient, sheetId, tab, "A:B");
                 zoneData.push({ zone: tab, content: tabData });
             }
-            res.render("console", {zoneData, networkName, rid});
+            res.render("console", {zoneData, networkName, rid, endPointForClient: config.configuration.endPointForClient, socketAuthToken: config.configuration.socketAuthToken});
         } catch (error) {
             console.error("Error fetching sheet data:", error);
             res.status(500).send("Error fetching sheet data");
         }
     });
     app.get("/sys_view" , (req , res)=>{
-        res.render("systemView", {networkName});
+        res.render("systemView", {networkName, endPointForClient: config.configuration.endPointForClient, socketAuthToken: config.configuration.socketAuthToken});
     });
     app.get("/sys_view/admin", (req , res)=>{
         if (req.session.user && req.session.user.level === "admin") {
-            res.render("adminView", {networkName});
+            res.render("adminView", {networkName, endPointForClient: config.configuration.endPointForClient, socketAuthToken: config.configuration.socketAuthToken});
         } else {
             res.send("Invalid permissions");
         }
     });
     app.get("/affiliations" , (req , res)=>{
-        res.render("affiliations", {affiliations, networkName});
+        res.render("affiliations", {affiliations, networkName, endPointForClient: config.configuration.endPointForClient, socketAuthToken: config.configuration.socketAuthToken});
     });
     app.get("/tones" , async (req , res)=>{
         try {
@@ -453,7 +453,7 @@ try {
                 const tabData = await readGoogleSheet(googleSheetClient, sheetId, tab, "A:B");
                 zoneData.push({ zone: tab, content: tabData });
             }
-            res.render("tones", {zoneData, networkName});
+            res.render("tones", {zoneData, networkName, endPointForClient: config.configuration.endPointForClient, socketAuthToken: config.configuration.socketAuthToken});
         } catch (error) {
             console.error("Error fetching sheet data:", error);
             res.status(500).send("Error fetching sheet data");
@@ -461,7 +461,7 @@ try {
     });
 
     app.get("/sysWatch", (req, res) => {
-        res.render("sysWatch", { networkName: networkName, controlChannels: controlChannels });
+        res.render("sysWatch", { networkName: networkName, controlChannels: controlChannels, endPointForClient: config.configuration.endPointForClient, socketAuthToken: config.configuration.socketAuthToken });
     });
 
     app.get("/auto" , async (req , res)=>{
@@ -472,7 +472,7 @@ try {
                 const tabData = await readGoogleSheet(googleSheetClient, sheetId, tab, "A:B");
                 zoneData.push({ zone: tab, content: tabData });
             }
-            res.render("auto", {zoneData, networkName});
+            res.render("auto", {zoneData, networkName, endPointForClient: config.configuration.endPointForClient, socketAuthToken: config.configuration.socketAuthToken});
         } catch (error) {
             console.error("Error fetching sheet data:", error);
             res.status(500).send("Error fetching sheet data");
@@ -637,11 +637,33 @@ try {
         return null;
     }
 
-    io.on("connection", function (socket) {
+    io.use((socket, next) => {
+        const token = socket.handshake.query.token;
+        //console.log("Token Received:", token);
+
+        if (!token) {
+            //console.error('No token provided');
+            return next(new Error('Authentication error'));
+        }
+
+        jwt.verify(token, config.configuration.apiToken, function(err, decoded) {
+            if (err) {
+                //console.error('JWT Verification Error:', err.message);
+                return next(new Error('Authentication error'));
+            }
+            socket.decoded = decoded;
+            //console.log('JWT Verified Successfully');
+            next();
+        });
+    }).on("connection", function (socket) {
         const socketId = socket.id;
         socketsStatus[socket.id] = {};
 
         broadcastChannelUpdates();
+
+        socket.on("REQUEST_CHANNEL_UPDATES", function (data){
+            broadcastChannelUpdates();
+        });
 
         socket.on("VOICE_CHANNEL_CONFIRMED", function (data) {
             if (data.srcId && grantedChannels[data.dstId]) {

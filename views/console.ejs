@@ -18,7 +18,9 @@
     <div id="channelsContainer" class="row"></div>
 </div>
 <script>
-    const socket = io();
+    var socket = io.connect("<%= endPointForClient %>", {
+        query: { token: "<%= socketAuthToken %>" }
+    });
     let activeVoiceChannels = {};
     let rid = '<%= rid %>';
     let channelStatuses = {};
