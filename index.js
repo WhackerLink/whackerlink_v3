@@ -149,7 +149,7 @@ try {
 
     app.set('views', path.join(config.paths.fullPath, 'views'))
     app.set("view engine", "ejs");
-    app.use("/files", express.static("public"));
+    app.use("/files", express.static(config.paths.fullPath + "public"));
     /*
         User interface routes
      */
