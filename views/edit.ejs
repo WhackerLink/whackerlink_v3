@@ -12,7 +12,7 @@
             <label for="username">Username:</label>
             <input type="text" class="form-control" id="username" name="username" value="<%= user.username %>" required>
         </div>
-        <% if (user.level === "admin"){ %>
+        <% if (loggedinuser.level === "admin"){ %>
         <div class="form-group">
             <label for="mainRid">Main RID:</label>
             <input type="text" class="form-control" id="mainRid" name="mainRid" value="<%= user.mainRid %>">
