@@ -18,6 +18,8 @@ import bcrypt from 'bcrypt';
 import db from './db.js';
 import path from 'path';
 
+const __dirname = path.resolve();
+
 //import io2 from "socket.io-client";
 //let peerSocket = io2("https://whackerlink.com");
 // peerSocket.on('connect', function(d){
