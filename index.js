@@ -107,8 +107,8 @@ try {
     const httpIo = new SocketIOServer(httpServer);
 
     const httpsOptions = {
-        key: fs.readFileSync('./ssl/server.key'),
-        cert: fs.readFileSync('./ssl/server.cert')
+        key: fs.readFileSync(config.paths.fullPath + 'ssl/server.key'),
+        cert: fs.readFileSync(config.paths.fullPath + '/ssl/server.cert')
     };
 
     const httpsApp = express();
