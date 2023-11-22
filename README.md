@@ -31,7 +31,7 @@ Setup the config files. Rename the `config.example.yml` file to `config.yml` and
 
 Put the google json file into the root directory of whackerlink and rename it to `google.json`. Open the `config.yml` file and under the `‘sheetsJson: './something-124.json'` change `‘./something-124.json’` to `‘google.json’`. Under the sheetsID put the google sheet that the rids and channels are listed in. The ID should look something like this: `14KmRdIIGcLWQnM4sWBKFxJOmqj7-Mh0vXO8taKsEgJU`. You can find this in the URL of your sheet while viewing.
 
-Make sure to run toke_generator.js to generate your JWT for socket use. This is a must and a huge security upgrade.
+Make sure to run `node toke_generator.js -c config.yml` to generate your JWT for socket use. This is a **must** and a huge security upgrade.
 
 ### Run WhackerLink
 
