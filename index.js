@@ -107,8 +107,8 @@ try {
     const httpIo = new SocketIOServer(httpServer);
 
     const httpsOptions = {
-        key: fs.readFileSync('./ssl/server.key'),
-        cert: fs.readFileSync('./ssl/server.cert')
+        key: fs.readFileSync(config.paths.fullPath + 'ssl/server.key'),
+        cert: fs.readFileSync(config.paths.fullPath + '/ssl/server.cert')
     };
 
     const httpsApp = express();
@@ -149,7 +149,7 @@ try {
 
     app.set('views', path.join(config.paths.fullPath, 'views'))
     app.set("view engine", "ejs");
-    app.use("/files", express.static("public"));
+    app.use("/files", express.static(config.paths.fullPath + "public"));
     /*
         User interface routes
      */
@@ -204,7 +204,7 @@ try {
                     console.error(err.message);
                     return;
                 }
-                res.render('edit.ejs', {user: user});
+                res.render('edit.ejs', {user: user, loggedinuser: req.session.user});
             });
         } else if(req.session.user.id == userId) {
             db.get('SELECT * FROM users WHERE id = ?', [userId], (err, user) => {
@@ -213,7 +213,7 @@ try {
                     console.error(err.message);
                     return;
                 }
-                res.render('edit.ejs', {user: user});
+                res.render('edit.ejs', {user: user, loggedinuser: req.session.user});
             });
         } else {
             res.send("Invalid permissions");
