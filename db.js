@@ -16,6 +16,24 @@ db.serialize(() => {
         level TEXT NOT NULL,
         last_login_ip TEXT
     )`);
+
+    db.get("SELECT COUNT(*) AS count FROM users", (err, row) => {
+        if (err) {
+            console.error(err.message);
+            return;
+        }
+
+        if (row.count === 0) {
+            db.run(`INSERT INTO users (username, password, mainRid, level) VALUES (?, ?, ?, ?)`, 
+            ["admin", "passw0rd", "1", "admin"], (err) => {
+                if (err) {
+                    console.error(err.message);
+                } else {
+                    console.log("Default admin user created");
+                }
+            });
+        }
+    });
 });
 
 export default db;
