@@ -1,4 +1,5 @@
 import sqlite3 from 'sqlite3';
+import bcrypt from 'bcrypt';
 
 let db = new sqlite3.Database('./db/whackerlink_users.db', (err) => {
     if (err) {
@@ -16,6 +17,31 @@ db.serialize(() => {
         level TEXT NOT NULL,
         last_login_ip TEXT
     )`);
+
+    db.get("SELECT COUNT(*) AS count FROM users", (err, row) => {
+        if (err) {
+            console.error(err.message);
+            return;
+        }
+
+        if (row.count === 0) {
+            let saltRounds = 10;
+            bcrypt.hash("passw0rd", saltRounds, function(err, hash) {
+                if (err) {
+                    console.error(err.message);
+                    return;
+                }
+                db.run(`INSERT INTO users (username, password, mainRid, level) VALUES (?, ?, ?, ?)`, 
+                ["admin", hash, "1", "admin"], (err) => {
+                    if (err) {
+                        console.error(err.message);
+                    } else {
+                        console.log("Default admin user created");
+                    }
+                });
+            });
+        }
+    });
 });
 
 export default db;
