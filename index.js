@@ -283,7 +283,7 @@ try {
     });
 
     app.get('/register', (req, res) => {
-        res.render('register', networkName);
+        res.render('register', { networkName });
     });
 
     app.post('/register', (req, res) => {
@@ -344,7 +344,7 @@ try {
     });
 
     app.get('/login', (req, res) => {
-        res.render('login', networkName);
+        res.render('login', { networkName });
     });
 
     app.post('/login', (req, res) => {
