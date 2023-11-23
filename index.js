@@ -187,7 +187,7 @@ try {
                     res.status(500).send('Error retrieving users');
                     console.error(err.message);
                 } else {
-                    res.render('users', {users: rows});
+                    res.render('users', {users: rows, networkName});
                 }
             });
         } else {
@@ -204,7 +204,7 @@ try {
                     console.error(err.message);
                     return;
                 }
-                res.render('edit.ejs', {user: user, loggedinuser: req.session.user});
+                res.render('edit.ejs', {user: user, loggedinuser: req.session.user, networkName});
             });
         } else if(req.session.user.id == userId) {
             db.get('SELECT * FROM users WHERE id = ?', [userId], (err, user) => {
@@ -213,7 +213,7 @@ try {
                     console.error(err.message);
                     return;
                 }
-                res.render('edit.ejs', {user: user, loggedinuser: req.session.user});
+                res.render('edit.ejs', {user: user, loggedinuser: req.session.user, networkName});
             });
         } else {
             res.send("Invalid permissions");
@@ -229,7 +229,7 @@ try {
                     console.error(err.message);
                     return;
                 }
-                res.render('delete.ejs', {user: user});
+                res.render('delete.ejs', {user: user, networkName});
             });
         } else {
             res.send("Invalid permissions");
@@ -283,7 +283,7 @@ try {
     });
 
     app.get('/register', (req, res) => {
-        res.render('register');
+        res.render('register', networkName);
     });
 
     app.post('/register', (req, res) => {
@@ -344,7 +344,7 @@ try {
     });
 
     app.get('/login', (req, res) => {
-        res.render('login');
+        res.render('login', networkName);
     });
 
     app.post('/login', (req, res) => {
@@ -389,13 +389,13 @@ try {
             // ${req.session.user.username}
             switch (radio_model) {
                 case "apx6000_non_xe_black":
-                    res.render("6k_noxe_black", {selected_channel: req.query.channel, rid: req.query.rid, mode: req.query.mode, zone: req.query.zone, logged_in_user: req.session.user, endPointForClient: config.configuration.endPointForClient, socketAuthToken: config.configuration.socketAuthToken, controlChannel: controlChannels[0]});
+                    res.render("6k_noxe_black", {networkName, selected_channel: req.query.channel, rid: req.query.rid, mode: req.query.mode, zone: req.query.zone, logged_in_user: req.session.user, endPointForClient: config.configuration.endPointForClient, socketAuthToken: config.configuration.socketAuthToken, controlChannel: controlChannels[0]});
                     break;
                 case "apxmobile_o2_green":
-                    res.render("o2_radio", {selected_channel: req.query.channel, rid: req.query.rid, mode: req.query.mode, zone: req.query.zone, logged_in_user: req.session.user, endPointForClient: config.configuration.endPointForClient, socketAuthToken: config.configuration.socketAuthToken, controlChannel: controlChannels[0]});
+                    res.render("o2_radio", {networkName, selected_channel: req.query.channel, rid: req.query.rid, mode: req.query.mode, zone: req.query.zone, logged_in_user: req.session.user, endPointForClient: config.configuration.endPointForClient, socketAuthToken: config.configuration.socketAuthToken, controlChannel: controlChannels[0]});
                     break;
                 case "apx8000_xe_green":
-                    res.render("o2_radio", {selected_channel: req.query.channel, rid: req.query.rid, mode: req.query.mode, zone: req.query.zone, logged_in_user: req.session.user, endPointForClient: config.configuration.endPointForClient, socketAuthToken: config.configuration.socketAuthToken, controlChannel: controlChannels[0]});
+                    res.render("o2_radio", {networkName, selected_channel: req.query.channel, rid: req.query.rid, mode: req.query.mode, zone: req.query.zone, logged_in_user: req.session.user, endPointForClient: config.configuration.endPointForClient, socketAuthToken: config.configuration.socketAuthToken, controlChannel: controlChannels[0]});
                     break;
                 default:
                     res.send("Invalid radio model");
