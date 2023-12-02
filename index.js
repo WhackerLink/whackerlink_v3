@@ -131,14 +131,16 @@ try {
     /*
         Loop through masters and create the master
      */
-    const masters = {}; //Placeholder
-    masters.forEach((master) => {
-        // TODO: Move all socket and db stuff to the module
-        new Master(
-            config,
-            logger
-        ).create();
-    });
+    const masters = null; //Placeholder
+    if (masters !== null) {
+        masters.forEach((master) => {
+            // TODO: Move all socket and db stuff to the module
+            new Master(
+                config,
+                logger
+            ).create();
+        });
+    }
 
     /*
         Loop through peers list and attempt to connect
