@@ -30,14 +30,16 @@ configuration:
   apiToken: "biglongtoken" # MAKE SURE TO MAKE THIS SECURE
   socketAuthToken: "" # Make sure to run the token generator to fill in this value
 
-peer: #Currently WIP no need to touch
-  externalPeerEnable: false #Enable external software peering
-  username: 'whacker' #Username for peer to login to
-  password: 'link' #Password for peer to login to
-  rid: '9998'
-  channel: 'Main'
-  metaData: true #Pass pages, emergency, etc
-  rconEnable: true #Allow RCON functions from the peer
+peers: # WIP
+  - name: "WhackerLink 1"
+    enable: false
+    username: whacker
+    password: link
+    srcId: '9998'
+    dstId: Main
+    metaData: true
+    rconEnable: true
+    endPoint: "http://localhost:5000"
 
 discord:
   voiceGrant: true

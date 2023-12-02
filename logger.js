@@ -1,3 +1,11 @@
+/*
+    Written by Caleb, KO4UYJ
+    Discord: _php_
+    Email: ko4uyj@gmail.com
+
+    Simple logging module
+ */
+
 import fs from 'fs';
 function writeLog(path, message){
     fs.appendFileSync(`${path}whackerlink.log`, `${message}\n`);

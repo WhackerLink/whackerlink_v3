@@ -2,6 +2,8 @@
     Written by Caleb, KO4UYJ
     Discord: _php_
     Email: ko4uyj@gmail.com
+
+    Main server application for WhackerLink
  */
 
 import express from "express";
@@ -17,7 +19,8 @@ import jwt from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
 import db from './db.js';
 import path from 'path';
-import Logger from './Logger.js'
+import Logger from './Logger.js';
+import Peer from './peer.js';
 
 const __dirname = path.resolve();
 
@@ -56,7 +59,6 @@ try {
     const rconLogins = config.paths.rconLogins;
     const serviceAccountKeyFile = config.paths.sheetsJson;
     const sheetId = config.configuration.sheetId;
-    const externalPeerEnable = config.peer.externalPeerEnable;
     const grantDenyOccurrence = config.configuration.grantDenyOccurrence;
     const enableDiscord = config.configuration.discordWebHookEnable;
     const discordWebHookUrl = config.configuration.discordWebHookUrl;
@@ -73,16 +75,10 @@ try {
     const discordEmerg = config.discord.emergencyCall;
     const discordVoiceD = config.discord.emergencyCall;
     const useHttps = config.configuration.httpsEnable || false;
+    const peers = config.peers;
 
     const controlChannels = config.system.controlChannels;
     const voiceChannels = config.system.voiceChannels;
-
-    // const rconUsername = config.peer.username;
-    // const rconPassword = config.peer.password;
-    // const rconRid = config.peer.rid;
-    // const rconChannel = config.peer.channel;
-    // const metaData = config.peer.metaData;
-    // const rconEnable = config.peer.rconEnable;
 
     console.log('Network Name:', networkName);
     console.log('HTTPS Enable:', useHttps);
@@ -93,18 +89,11 @@ try {
     console.log('Sheets JSON Path:', serviceAccountKeyFile);
     console.log('Sheet ID:', sheetId);
     console.log('grantDenyOccurrence:', grantDenyOccurrence);
-    console.log('External Peer Enable:', externalPeerEnable);
 
     if (grantDenyOccurrence < 3){
         console.log("grantDenyOccurrence can not be lower than three");
         throw Error;
     }
-    // console.log('Username:', username);
-    // console.log('Password:', password);
-    // console.log('RID:', rid);
-    // console.log('Channel:', channel);
-    // console.log('Meta Data:', metaData);
-    // console.log('RCON Enable:', rconEnable);
 
     const httpApp = express();
     const httpServer = http.createServer(httpApp);
@@ -143,6 +132,28 @@ try {
         logPath,
         debug
     );
+
+    /*
+        Loop through peers list and attempt to connect
+     */
+    peers.forEach((peer)=>{
+        /*
+            Creat new peer
+         */
+        if (peer.enable) {
+            const peerConnection = new Peer(
+                peer.username,
+                peer.password,
+                peer.srcId,
+                peer.dstId,
+                peer.metaData,
+                peer.rconEnable,
+                peer.endPoint,
+                logger
+            );
+            peerConnection.create();
+        }
+    });
 
     function authenticateToken(req, res, next) {
         const authHeader = req.headers['authorization'];
