@@ -13,17 +13,20 @@ system:
 
 paths:
   fullPath: '/home/user/whackerlink' #FULL path to whackerlink
+  logPath: '/var/log/whackerlink' #Path to send log files to
   rconLogins: './rcon_logins.json' #FULL path to json rcon logins
   sheetsJson: './something-124.json' #FULL path to the google sheets json file
-  httpsEnable: true #Do not change unless going through a proxy. This will NOT work unless it is https
 
 configuration:
+  logLevel: 1
+  debug: false
   sheetId: '' #Sheet ID for the google sheet
   grantDenyOccurrence: 5 #How often people will get random grant denys. Higher the number less often. Lowest number is 3.
   discordWebHookEnable: false #Enable discord functions
   discordWebHookUrl: '' #Webhook URL
   httpsEnable: true #Do not change unless going through a proxy. This will NOT work unless it is https
   apiEnable: false #Recommned leaving disabled for now
+  endPointForClient: http://localhost:5000
   apiToken: "biglongtoken" # MAKE SURE TO MAKE THIS SECURE
   socketAuthToken: "" # Make sure to run the token generator to fill in this value
 

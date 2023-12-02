@@ -6,3 +6,4 @@ config.yml
 rcon_logins.json
 whackernet-6596e5b32d02.json
 google.json
+*.log

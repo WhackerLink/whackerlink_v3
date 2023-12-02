@@ -17,6 +17,7 @@ import jwt from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
 import db from './db.js';
 import path from 'path';
+import Logger from './Logger.js'
 
 const __dirname = path.resolve();
 
@@ -49,6 +50,9 @@ try {
     const networkBindAddress = config.system.networkBindAddress;
     const networkBindPort = config.system.networkBindPort;
     const fullPath = config.paths.fullPath;
+    const logPath = config.paths.logPath;
+    const logLevel = config.configuration.logLevel;
+    const debug = config.configuration.debug;
     const rconLogins = config.paths.rconLogins;
     const serviceAccountKeyFile = config.paths.sheetsJson;
     const sheetId = config.configuration.sheetId;
@@ -134,6 +138,12 @@ try {
 
     app.use(express.urlencoded({ extended: true }));
 
+    const logger = new Logger(
+        logLevel,
+        logPath,
+        debug
+    );
+
     function authenticateToken(req, res, next) {
         const authHeader = req.headers['authorization'];
         const token = authHeader && authHeader.split(' ')[1];
@@ -201,7 +211,7 @@ try {
             db.get('SELECT * FROM users WHERE id = ?', [userId], (err, user) => {
                 if (err) {
                     res.status(500).send('Error retrieving user');
-                    console.error(err.message);
+                    logger.error(err.message);
                     return;
                 }
                 res.render('edit.ejs', {user: user, loggedinuser: req.session.user, networkName});
@@ -210,7 +220,7 @@ try {
             db.get('SELECT * FROM users WHERE id = ?', [userId], (err, user) => {
                 if (err) {
                     res.status(500).send('Error retrieving user');
-                    console.error(err.message);
+                    logger.error(err.message);
                     return;
                 }
                 res.render('edit.ejs', {user: user, loggedinuser: req.session.user, networkName});
@@ -226,7 +236,7 @@ try {
             db.get('SELECT * FROM users WHERE id = ?', [userId], (err, user) => {
                 if (err) {
                     res.status(500).send('Error retrieving user');
-                    console.error(err.message);
+                    logger.error(err.message);
                     return;
                 }
                 res.render('delete.ejs', {user: user, networkName});
@@ -244,20 +254,20 @@ try {
             db.run('UPDATE users SET username = ?, mainRid = ?, level = ? WHERE id = ?', [username, mainRid, level, userId], function (err) {
                 if (err) {
                     res.status(500).send("Error updating user");
-                    console.error(err.message);
+                    logger.error(err.message);
                     return;
                 }
-                console.log(`User with ID: ${userId} has been updated.`);
+                logger.log(`User with ID: ${userId} has been updated.`);
                 res.redirect('/users');
             });
         } else if(req.session.user.id === userId) {
             db.run('UPDATE users SET username = ?, mainRid = ?, level = ? WHERE id = ?', [username, mainRid, level, userId], function (err) {
                 if (err) {
                     res.status(500).send("Error updating user");
-                    console.error(err.message);
+                    logger.error(err.message);
                     return;
                 }
-                console.log(`User with ID: ${userId} has been updated.`);
+                logger.info(`User with ID: ${userId} has been updated.`);
                 res.redirect('/user_dashboard');
             });
         } else {
@@ -271,10 +281,10 @@ try {
             db.run('DELETE FROM users WHERE id = ?', [userId], function (err) {
                 if (err) {
                     res.status(500).send("Error updating user");
-                    console.error(err.message);
+                    logger.error(err.message);
                     return;
                 }
-                console.log(`User with ID: ${userId} has been DELETED.`);
+                logger.info(`User with ID: ${userId} has been DELETED.`);
                 res.redirect('/users');
             });
         } else {
@@ -301,13 +311,13 @@ try {
 
         bcrypt.hash(password, saltRounds, function(err, hash) {
             if (err) {
-                console.error(err.message);
+                logger.error(err.message);
                 return res.status(500).send("Error hashing password");
             }
 
             db.get('SELECT id FROM users WHERE username = ?', [username], (err, row) => {
                 if (err) {
-                    console.error(err.message);
+                    logger.error(err.message);
                     return res.status(500).send("Error checking user existence");
                 }
 
@@ -317,11 +327,11 @@ try {
 
                 db.run('INSERT INTO users (username, password, mainRid, level) VALUES (?, ?, ?, ?)', [username, hash, mainRid, level], function(err) {
                     if (err) {
-                        console.error(err.message);
+                        logger.error(err.message);
                         return res.status(500).send("Error registering user");
                     }
-                    console.log(level)
-                    console.log(`A new user has been created with ID: ${this.lastID}`);
+                    logger.debug(level)
+                    logger.info(`A new user has been created with ID: ${this.lastID}`);
                     const message = 'Registered successfully!';
                     const redirectUrl = '/login';
 
@@ -417,7 +427,7 @@ try {
             }
             res.render("uniLanding", {zoneData, networkName, endPointForClient: config.configuration.endPointForClient, socketAuthToken: config.configuration.socketAuthToken});
         } catch (error) {
-            console.error("Error fetching sheet data:", error);
+            logger.error("Error fetching sheet data:", error);
             res.status(500).send("Error fetching sheet data");
         }
     });
@@ -432,7 +442,7 @@ try {
             }
             res.render("console", {zoneData, networkName, rid, endPointForClient: config.configuration.endPointForClient, socketAuthToken: config.configuration.socketAuthToken});
         } catch (error) {
-            console.error("Error fetching sheet data:", error);
+            logger.error("Error fetching sheet data:", error);
             res.status(500).send("Error fetching sheet data");
         }
     });
@@ -459,7 +469,7 @@ try {
             }
             res.render("tones", {zoneData, networkName, endPointForClient: config.configuration.endPointForClient, socketAuthToken: config.configuration.socketAuthToken});
         } catch (error) {
-            console.error("Error fetching sheet data:", error);
+            logger.error("Error fetching sheet data:", error);
             res.status(500).send("Error fetching sheet data");
         }
     });
@@ -478,7 +488,7 @@ try {
             }
             res.render("auto", {zoneData, networkName, endPointForClient: config.configuration.endPointForClient, socketAuthToken: config.configuration.socketAuthToken});
         } catch (error) {
-            console.error("Error fetching sheet data:", error);
+            logger.error("Error fetching sheet data:", error);
             res.status(500).send("Error fetching sheet data");
         }
     });
@@ -538,9 +548,9 @@ try {
 
         try {
             const response = await axios.post(webhookUrl, data);
-            //console.log('Webhook sent successfully', response.data);
+            logger.debug('Webhook sent successfully ' + response.data);
         } catch (error) {
-            console.error('Error sending webhook:', error.message);
+            logger.error('Error sending webhook:' + error.message);
         }
     }
 
@@ -615,7 +625,7 @@ try {
          */
         data.stamp = getDaTime();
         io.emit("VOICE_CHANNEL_GRANT", data);
-        console.log(`FORCED VOICE_CHANNEL_GRANT GIVEN TO: ${data.srcId} ON: ${data.dstId}`);
+        logger.info(`FORCED VOICE_CHANNEL_GRANT GIVEN TO: ${data.srcId} ON: ${data.dstId}`);
         if (enableDiscord && discordVoiceG) {
             sendDiscord(`Voice Transmission from ${data.srcId} on ${data.dstId}`);
         }
@@ -643,20 +653,20 @@ try {
 
     io.use((socket, next) => {
         const token = socket.handshake.query.token;
-        //console.log("Token Received:", token);
+        logger.debug("Token Received: " + token);
 
         if (!token) {
-            //console.error('No token provided');
+            logger.debug('No token provided');
             return next(new Error('Authentication error'));
         }
 
         jwt.verify(token, config.configuration.apiToken, function(err, decoded) {
             if (err) {
-                //console.error('JWT Verification Error:', err.message);
+                logger.debug('JWT Verification Error:', err.message);
                 return next(new Error('Authentication error'));
             }
             socket.decoded = decoded;
-            //console.log('JWT Verified Successfully');
+            logger.debug('JWT Verified Successfully');
             next();
         });
     }).on("connection", function (socket) {
@@ -672,7 +682,7 @@ try {
         socket.on("VOICE_CHANNEL_CONFIRMED", function (data) {
             if (data.srcId && grantedChannels[data.dstId]) {
                 socketsStatus[socketId].voiceChannelActive = true;
-               // console.log(`Voice channel confirmed ${data.srcId} on ${data.dstId}`);
+                logger.debug(`Voice channel confirmed ${data.srcId} on ${data.dstId}`);
             }
         });
 
@@ -707,7 +717,7 @@ try {
                             controlChannel: socketsStatus[id].controlChannel
                         });
                     } else {
-                        console.log(`srcID: ${socketsStatus[socketId].srcId} not on voice channel; stand by`);
+                        logger.warn(`srcID: ${socketsStatus[socketId].srcId} not on voice channel; stand by`);
                     }
             }
         });
@@ -722,7 +732,7 @@ try {
         });
 
         socket.on("VOICE_CHANNEL_REQUEST", function (data) {
-            console.log(`VOICE_CHANNEL_REQUEST FROM: ${data.srcId} TO: ${data.dstId}`);
+            logger.info(`VOICE_CHANNEL_REQUEST FROM: ${data.srcId} TO: ${data.dstId}`);
             const cdtDateTime = getDaTime();
             data.stamp = cdtDateTime;
 
@@ -736,7 +746,7 @@ try {
                 if (!Number.isInteger(integerNumber)) {
                     data.stamp = cdtDateTime;
                     io.emit("VOICE_CHANNEL_DENY", data);
-                    console.log("Invalid RID");
+                    logger.warn("Invalid RID");
                     return;
                 }
 
@@ -753,7 +763,7 @@ try {
                             }
                         }
                         broadcastChannelUpdates();
-                        console.log(`VOICE_CHANNEL_GRANT GIVEN TO: ${data.srcId} ON: ${data.dstId} AT: ${assignedChannel}`);
+                        logger.info(`VOICE_CHANNEL_GRANT GIVEN TO: ${data.srcId} ON: ${data.dstId} AT: ${assignedChannel}`);
                         if (enableDiscord && discordVoiceG) {
                             sendDiscord(`Voice Transmission from ${data.srcId} on ${data.dstId} at ${data.stamp}`);
                         }
@@ -763,22 +773,22 @@ try {
                     } else {
                         data.stamp = cdtDateTime;
                         io.emit("VOICE_CHANNEL_DENY", data);
-                        console.log(`VOICE_CHANNEL_DENY GIVEN TO: ${data.srcId} ON: ${data.dstId}`);
+                        logger.info(`VOICE_CHANNEL_DENY GIVEN TO: ${data.srcId} ON: ${data.dstId}`);
                         if (enableDiscord && discordVoiceD) {
                             sendDiscord(`Voice Deny from ${data.srcId} on ${data.dstId} at ${data.stamp}`);
                         }
                     }
                 } else {
                     io.emit("VOICE_CHANNEL_DENY", data);
-                    console.log(`VOICE_CHANNEL_DENY GIVEN TO: ${data.srcId} ON: ${data.dstId}`);
-                    console.log(data.srcId, "Non affiliated voice request not permitted for ", data.dstId);
+                    logger.info(`VOICE_CHANNEL_DENY GIVEN TO: ${data.srcId} ON: ${data.dstId}`);
+                    logger.warn(data.srcId + " Non affiliated voice request not permitted for " + data.dstId);
                 }
             }, 750);
         });
 
         socket.on("RELEASE_VOICE_CHANNEL", function (data){
             data.stamp = getDaTime();
-            console.log(`RELEASE_VOICE_CHANNEL FROM: ${data.srcId} TO: ${data.dstId}`);
+            logger.info(`RELEASE_VOICE_CHANNEL FROM: ${data.srcId} TO: ${data.dstId}`);
             io.emit("VOICE_CHANNEL_RELEASE", data);
             grantedRids[data.srcId] = false;
             grantedChannels[data.dstId] = false;
@@ -815,10 +825,10 @@ try {
                     sendDiscord(`Affiliation Grant to ${data.srcId} on ${data.dstId} at ${data.stamp}`);
                 }
                 if (!getAffiliation(data.srcId)){
-                    console.log("AFFILIATION GRANTED TO: " + data.srcId + " ON: " + data.dstId);
+                    logger.info("AFFILIATION GRANTED TO: " + data.srcId + " ON: " + data.dstId);
                     addAffiliation(data.srcId, data.dstId, data.stamp = getDaTime());
                 } else {
-                    console.log("AFFILIATION GRANTED TO: " + data.srcId + " ON: " + data.dstId + " AND REMOVED OLD AFF");
+                    logger.info("AFFILIATION GRANTED TO: " + data.srcId + " ON: " + data.dstId + " AND REMOVED OLD AFF");
                     removeAffiliation(data.srcId);
                     addAffiliation(data.srcId, data.dstId);
                 }
@@ -827,7 +837,7 @@ try {
         socket.on("REMOVE_AFFILIATION", function (data){
             data.stamp = getDaTime();
             removeAffiliation(data.srcId);
-            console.log("AFFILIATION REMOVED: " + data.srcId + " ON: " + data.dstId);
+            logger.info("AFFILIATION REMOVED: " + data.srcId + " ON: " + data.dstId);
             io.emit("REMOVE_AFFILIATION_GRANTED", data);
         });
 
@@ -836,7 +846,7 @@ try {
                 sendDiscord(`Affiliation Grant to ${data.srcId} on ${data.dstId} at ${data.stamp}`);
             }
             data.stamp = getDaTime();
-            console.log("EMERGENCY_CALL FROM: " + data.srcId + " ON: " + data.dstId)
+            logger.info("EMERGENCY_CALL FROM: " + data.srcId + " ON: " + data.dstId)
             io.emit("EMERGENCY_CALL", data);
         });
 
@@ -853,7 +863,7 @@ try {
             if (matchingIndex !== -1) {
                 ridAcl[matchingIndex][1] = '0';
                 await updateGoogleSheet(googleSheetClient, sheetId, "rid_acl", "A:B", ridAcl);
-                console.log(`RID_INHIBIT: ${ridToInhibit}`);
+                logger.info(`RID_INHIBIT: ${ridToInhibit}`);
             }
         });
 
@@ -875,7 +885,7 @@ try {
             if (matchingIndex !== -1) {
                 ridAcl[matchingIndex][1] = '1';
                 await updateGoogleSheet(googleSheetClient, sheetId, "rid_acl", "A:B", ridAcl);
-                console.log(`RID_UNINHIBIT: ${ridToUnInhibit}`);
+                logger.info(`RID_UNINHIBIT: ${ridToUnInhibit}`);
             }
         });
 
@@ -920,7 +930,7 @@ try {
                                 sendDiscord(`Reg grant: ${rid}`);
                             }
                             io.emit("REG_GRANTED", rid);
-                            console.log("REG_GRANTED: " + rid);
+                            logger.info("REG_GRANTED: " + rid);
                         } else {
                             io.emit("RID_INHIBIT", {srcId: rid, dstId: "999999999"});
                         }
@@ -956,7 +966,7 @@ try {
         });
         socket.on("RID_PAGE", function(data){
             data.stamp = getDaTime();
-            console.log("RID PAGE srcId: ", data.srcId, " dstId: ", data.dstId)
+            logger.info("RID PAGE srcId: ", data.srcId, " dstId: ", data.dstId)
             setTimeout(()=>{
                 io.emit("PAGE_RID", data);
             }, 1000);
@@ -1034,7 +1044,7 @@ try {
 
     server.listen(networkBindPort, networkBindAddress, () => {
         const protocol = useHttps ? 'https' : 'http';
-        console.log(`${networkName} is running on ${protocol}://${networkBindAddress}:${networkBindPort}`);
+        logger.info(`${networkName} is running on ${protocol}://${networkBindAddress}:${networkBindPort}`);
     });
 
 } catch (error) {
