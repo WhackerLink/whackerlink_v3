@@ -147,7 +147,7 @@ try {
      */
     peers.forEach((peer)=>{
         /*
-            Creat new peer
+            Create new peer
          */
         if (peer.enable) {
             new Peer(
