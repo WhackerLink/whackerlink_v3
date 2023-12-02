@@ -21,15 +21,10 @@ import db from './db.js';
 import path from 'path';
 import Logger from './Logger.js';
 import Peer from './peer.js';
+import Master from './master.js';
 
 const __dirname = path.resolve();
 
-//import io2 from "socket.io-client";
-//let peerSocket = io2("https://whackerlink.com");
-// peerSocket.on('connect', function(d){
-//    //console.log("connnnnnnnnnect");
-//     //Future peering stuff
-// });
 const socketsStatus = {};
 const grantedChannels = {};
 const grantedRids = {};
@@ -134,6 +129,18 @@ try {
     );
 
     /*
+        Loop through masters and create the master
+     */
+    const masters = {}; //Placeholder
+    masters.forEach((master) => {
+        // TODO: Move all socket and db stuff to the module
+        new Master(
+            config,
+            logger
+        ).create();
+    });
+
+    /*
         Loop through peers list and attempt to connect
      */
     peers.forEach((peer)=>{
@@ -141,7 +148,7 @@ try {
             Creat new peer
          */
         if (peer.enable) {
-            const peerConnection = new Peer(
+            new Peer(
                 peer.username,
                 peer.password,
                 peer.srcId,
@@ -150,8 +157,7 @@ try {
                 peer.rconEnable,
                 peer.endPoint,
                 logger
-            );
-            peerConnection.create();
+            ).create();
         }
     });
 
