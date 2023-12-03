@@ -131,6 +131,7 @@ try {
     /*
         Loop through masters and create the master
      */
+    // Convert all sockets and database stuff to use the master.js module
     const masters = null; //Placeholder
     if (masters !== null) {
         masters.forEach((master) => {
@@ -151,30 +152,15 @@ try {
          */
         if (peer.enable) {
             new Peer(
-                peer.username,
-                peer.password,
+                peer.jwt,
                 peer.srcId,
                 peer.dstId,
-                peer.metaData,
-                peer.rconEnable,
+                peer.ignoreCommands,
                 peer.endPoint,
                 logger
             ).create();
         }
     });
-
-    function authenticateToken(req, res, next) {
-        const authHeader = req.headers['authorization'];
-        const token = authHeader && authHeader.split(' ')[1];
-
-        if (token == null) return res.sendStatus(401);
-
-        jwt.verify(token, config.configuration.socketAuthToken, (err, user) => {
-            if (err) return res.sendStatus(403);
-            req.user = user;
-            next();
-        });
-    }
 
     app.set('views', path.join(config.paths.fullPath, 'views'))
     app.set("view engine", "ejs");
@@ -998,9 +984,6 @@ try {
         });
         socket.on("FORCE_VOICE_CHANNEL_GRANT", function(data){
             forceGrant(data);
-        });
-        socket.on("PEER_LOGIN_REQUEST", function(data){
-            //Future login handling for peers
         });
     });
 

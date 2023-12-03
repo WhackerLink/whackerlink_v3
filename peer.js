@@ -12,13 +12,11 @@ class Peer {
     /*
         Constructor
      */
-    constructor(username, password, srcId, dstId, metaData, rconEnable, endPoint, logger) {
-        this.username = username;
-        this.password = password;
+    constructor(jwt, srcId, dstId, ignoreCommands, endPoint, logger) {
+        this.jwt = jwt;
         this.srcId = srcId;
         this.dstId = dstId;
-        this.metaData = metaData;
-        this.rconEnable = rconEnable;
+        this.ignoreCommands = ignoreCommands;
         this.endPoint = endPoint;
         this.logger = logger;
     }
@@ -27,13 +25,23 @@ class Peer {
         Create new peer instance
      */
     create() {
-        const peerSocket = io(this.endPoint);
+        this.authenticated = false;
+        const peerSocket = io(this.endPoint, {
+            query: { token: this.jwt }
+        });
+        this.logger.debug(this.jwt);
         this.logger.info("Attempting peer authentication: " + this.endPoint)
-        // TODO: Implement JWT
-        peerSocket.on('connect', function (d) {
+        peerSocket.on('connect', function () {
+            this.authenticated = true;
             this.logger.info("Connected to peer: " + this.endPoint);
             // TODO: Implement peering
         });
+        setTimeout(() => {
+            if (!this.authenticated){
+                this.logger.error("Peer authentication timed out");
+                peerSocket.disconnect();
+            }
+        }, 5000);
     }
 }
 export default Peer
