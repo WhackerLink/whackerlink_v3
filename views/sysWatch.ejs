@@ -1,61 +1,61 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sys Watch - <%= networkName %></title>
-    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" rel="stylesheet">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.1.2/socket.io.js" crossorigin="anonymous"></script>
-</head>
-<body>
-<div class="container">
-    <h1>Sys Watch - <%= networkName %></h1>
-    <div id="controlChannelsContainer">
-        <% controlChannels.forEach(function(controlChannel) { %>
-            <div class="control-channel-box" id="control-channel-<%= controlChannel %>">
-                <h3><%= controlChannel %></h3>
-                <div class="voice-channels-list"></div>
-            </div>
-        <% }); %>
-    </div>
-</div>
-
-<script>
-    var socket = io.connect("<%= endPointForClient %>", {
-        query: { token: "<%= socketAuthToken %>" }
-    });
-
-    socket.on('updateChannels', function(channels) {
-        channels.forEach(channelInfo => {
-            const controlChannelElement = document.getElementById(`control-channel-${channelInfo.controlChannel}`);
-            if (!controlChannelElement) return;
-
-            const voiceChannelsList = controlChannelElement.querySelector('.voice-channels-list');
-            voiceChannelsList.innerHTML = '';
-
-            channelInfo.voiceChannels.forEach(voiceChannel => {
-                console.log(voiceChannel)
-                const voiceChannelDiv = document.createElement('div');
-                voiceChannelDiv.className = 'card mb-2';
-                voiceChannelDiv.innerHTML = `
-                    <div class="card-body">
-                        <h5 class="card-title">Voice Channel: ${voiceChannel.voiceChannel}</h5>
-                        <p class="card-text">Dst ID: ${voiceChannel.dstId}</p>
-                        <p class="card-text">Src ID: ${voiceChannel.srcId}</p>
+    <head>
+        <meta charset="UTF-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Sys Watch - <%= networkName %></title>
+        <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" rel="stylesheet">
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.1.2/socket.io.js" crossorigin="anonymous"></script>
+    </head>
+    <body>
+        <div class="container">
+            <h1>Sys Watch - <%= networkName %></h1>
+            <div id="controlChannelsContainer">
+                <% controlChannels.forEach(function(controlChannel) { %>
+                    <div class="control-channel-box" id="control-channel-<%= controlChannel %>">
+                        <h3><%= controlChannel %></h3>
+                        <div class="voice-channels-list"></div>
                     </div>
-                `;
-                voiceChannelsList.appendChild(voiceChannelDiv);
+                <% }); %>
+            </div>
+        </div>
+
+        <script>
+            var socket = io.connect("<%= endPointForClient %>", {
+                query: { token: "<%= socketAuthToken %>" }
             });
-        });
-    });
-</script>
-</body>
-<style>
-    .control-channel-box {
-        border: 1px solid #ccc;
-        padding: 15px;
-        margin-bottom: 20px;
-    }
-</style>
+
+            socket.on('updateChannels', function(channels) {
+                channels.forEach(channelInfo => {
+                    const controlChannelElement = document.getElementById(`control-channel-${channelInfo.controlChannel}`);
+                    if (!controlChannelElement) return;
+
+                    const voiceChannelsList = controlChannelElement.querySelector('.voice-channels-list');
+                    voiceChannelsList.innerHTML = '';
+
+                    channelInfo.voiceChannels.forEach(voiceChannel => {
+                        console.log(voiceChannel)
+                        const voiceChannelDiv = document.createElement('div');
+                        voiceChannelDiv.className = 'card mb-2';
+                        voiceChannelDiv.innerHTML = `
+                            <div class="card-body">
+                                <h5 class="card-title">Voice Channel: ${voiceChannel.voiceChannel}</h5>
+                                <p class="card-text">Dst ID: ${voiceChannel.dstId}</p>
+                                <p class="card-text">Src ID: ${voiceChannel.srcId}</p>
+                            </div>
+                        `;
+                        voiceChannelsList.appendChild(voiceChannelDiv);
+                    });
+                });
+            });
+        </script>
+    </body>
+    <style>
+        .control-channel-box {
+            border: 1px solid #ccc;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+    </style>
 </html>

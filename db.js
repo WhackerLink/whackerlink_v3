@@ -1,3 +1,12 @@
+/**
+ * This file is part of the WhackerLink project.
+ *
+ * (c) 2023 Caleb <ko4uyj@gmail.com>
+ *
+ * For the full copyright and license information, see the
+ * LICENSE file that was distributed with this source code.
+ */
+
 import sqlite3 from 'sqlite3';
 import bcrypt from 'bcrypt';
 
@@ -5,6 +14,7 @@ let db = new sqlite3.Database('./db/whackerlink_users.db', (err) => {
     if (err) {
         console.error(err.message);
     }
+
     console.log('Connected to the WhackerLink database');
 });
 
@@ -31,7 +41,8 @@ db.serialize(() => {
                     console.error(err.message);
                     return;
                 }
-                db.run(`INSERT INTO users (username, password, mainRid, level) VALUES (?, ?, ?, ?)`, 
+
+                db.run(`INSERT INTO users (username, password, mainRid, level) VALUES (?, ?, ?, ?)`,
                 ["admin", hash, "1", "admin"], (err) => {
                     if (err) {
                         console.error(err.message);

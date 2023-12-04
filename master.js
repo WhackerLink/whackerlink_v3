@@ -1,42 +1,22 @@
 /*
-    Written by Caleb, KO4UYJ
-    Discord: _php_
-    Email: ko4uyj@gmail.com
-
-    Create whackerlink master server
+ * This file is part of the WhackerLink project.
+ *
+ * (c) 2023 Caleb <ko4uyj@gmail.com>
+ *
+ * For the full copyright and license information, see the
+ * LICENSE file that was distributed with this source code.
  */
 
-import express from "express";
-import session from "express-session";
-import http from "http";
-import {Server as SocketIOServer} from "socket.io";
-import axios from 'axios';
-import fs from "fs";
-import yaml from "js-yaml";
-import {google} from 'googleapis';
-import * as https from "https";
-import jwt from 'jsonwebtoken';
-import bcrypt from 'bcrypt';
-import db from './db.js';
-import path from 'path';
-import Peer from './peer.js';
-import io from "socket.io-client";
-
 class Master {
-    /*
-        Constructor
-     */
     constructor(config, logger) {
         this.config = config;
         this.logger = logger;
     }
 
-    /*
-        Create new master instance
-     */
     create() {
-        //TODO: Implement
+        // TODO: Implement
         this.logger.debug("not implemented");
     }
 }
+
 export default Master

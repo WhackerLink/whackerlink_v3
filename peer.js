@@ -1,17 +1,18 @@
-/*
-    Written by Caleb, KO4UYJ
-    Discord: _php_
-    Email: ko4uyj@gmail.com
-
-    Create peer connection to other WhackerLink applications. The device creating the connection acts as the master
+/**
+ * This file is part of the WhackerLink project.
+ *
+ * (c) 2023 Caleb <ko4uyj@gmail.com>
+ *
+ * For the full copyright and license information, see the
+ * LICENSE file that was distributed with this source code.
  */
 
 import io from "socket.io-client";
 
+/**
+ * Create peer connection to other WhackerLink applications. The device creating the connection acts as the master
+ */
 class Peer {
-    /*
-        Constructor
-     */
     constructor(jwt, srcId, dstId, ignoreCommands, endPoint, logger) {
         this.jwt = jwt;
         this.srcId = srcId;
@@ -21,9 +22,6 @@ class Peer {
         this.logger = logger;
     }
 
-    /*
-        Create new peer instance
-     */
     create() {
         this.authenticated = false;
         const peerSocket = io(this.endPoint, {
@@ -44,5 +42,5 @@ class Peer {
         }, 5000);
     }
 }
-export default Peer
 
+export default Peer

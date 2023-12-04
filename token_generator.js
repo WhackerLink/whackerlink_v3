@@ -1,7 +1,10 @@
-/*
-    Written by Caleb, KO4UYJ
-    Discord: _php_
-    Email: ko4uyj@gmail.com
+/**
+ * This file is part of the WhackerLink project.
+ *
+ * (c) 2023 Caleb <ko4uyj@gmail.com>
+ *
+ * For the full copyright and license information, see the
+ * LICENSE file that was distributed with this source code.
  */
 
 import jwt from 'jsonwebtoken';
@@ -13,10 +16,13 @@ function generateSocketIOToken(payload, secret) {
         return jwt.sign(payload, secret);
     } catch (error) {
         console.error('Error generating token:', error);
+
         return null;
     }
 }
+
 const configFilePathIndex = process.argv.indexOf('-c');
+
 if (configFilePathIndex === -1 || process.argv.length <= configFilePathIndex + 1) {
     console.error('Please provide the path to the configuration file using -c argument.');
     process.exit(1);
@@ -29,11 +35,14 @@ try {
     const config = yaml.load(configFile);
     const payload = {user: "Whacker Key"};
     const token = generateSocketIOToken(payload, config.configuration.apiToken);
-    console.log('Generated JWT Token:', token);
-    config.configuration.socketAuthToken = token;
-    let newYml = yaml.dump(config);
-    fs.writeFileSync(configFilePath, newYml)
 
+    console.log('Generated JWT Token:', token);
+
+    config.configuration.socketAuthToken = token;
+
+    let newYml = yaml.dump(config);
+
+    fs.writeFileSync(configFilePath, newYml)
 } catch (err){
     console.log(err);
 }
