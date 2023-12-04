@@ -1,38 +1,40 @@
-/*
-    Written by Caleb, KO4UYJ
-    Discord: _php_
-    Email: ko4uyj@gmail.com
-
-    Main server application for WhackerLink
+/**
+ * This file is part of the WhackerLink project.
+ *
+ * (c) 2023 Caleb <ko4uyj@gmail.com>
+ *
+ * For the full copyright and license information, see the
+ * LICENSE file that was distributed with this source code.
  */
 
-import express from "express";
-import session from "express-session";
-import http from "http";
-import {Server as SocketIOServer} from "socket.io";
+import express from 'express';
+import session from 'express-session';
+import http from 'http';
+import {Server as SocketIOServer} from 'socket.io';
 import axios from 'axios';
-import fs from "fs";
-import yaml from "js-yaml";
+import fs from 'fs';
+import yaml from 'js-yaml';
 import {google} from 'googleapis';
-import * as https from "https";
+import * as https from 'https';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
-import db from './db.js';
-import path from 'path';
 import Logger from './Logger.js';
 import Peer from './peer.js';
 import Master from './master.js';
 
-const __dirname = path.resolve();
+import db from './db.js';
+import path from 'path';
 
 const socketsStatus = {};
 const grantedChannels = {};
 const grantedRids = {};
 const affiliations = [];
+
 let regDenyCount = {};
 let activeVoiceChannels = {};
 
 const configFilePathIndex = process.argv.indexOf('-c');
+
 if (configFilePathIndex === -1 || process.argv.length <= configFilePathIndex + 1) {
     console.error('Please provide the path to the configuration file using -c argument.');
     process.exit(1);
@@ -87,6 +89,7 @@ try {
 
     if (grantDenyOccurrence < 3){
         console.log("grantDenyOccurrence can not be lower than three");
+
         throw Error;
     }
 
@@ -110,8 +113,6 @@ try {
     const googleSheetClient = await getGoogleSheetClient();
 
     const loginsFile = fs.readFileSync(rconLogins);
-    const adminUsers = JSON.parse(loginsFile);
-
 
     app.use(session({
         secret: "super_secret_password!2",
@@ -122,15 +123,8 @@ try {
 
     app.use(express.urlencoded({ extended: true }));
 
-    const logger = new Logger(
-        logLevel,
-        logPath,
-        debug
-    );
+    const logger = new Logger(logLevel, logPath, debug);
 
-    /*
-        Loop through masters and create the master
-     */
     // Convert all sockets and database stuff to use the master.js module
     const masters = null; //Placeholder
     if (masters !== null) {
@@ -143,13 +137,9 @@ try {
         });
     }
 
-    /*
-        Loop through peers list and attempt to connect
-     */
+    // Loop through peers list and attempt to connect
     peers.forEach((peer)=>{
-        /*
-            Create new peer
-         */
+        // Create new peer
         if (peer.enable) {
             new Peer(
                 peer.jwt,
@@ -165,9 +155,8 @@ try {
     app.set('views', path.join(config.paths.fullPath, 'views'))
     app.set("view engine", "ejs");
     app.use("/files", express.static(config.paths.fullPath + "public"));
-    /*
-        User interface routes
-     */
+
+    // User interface routes
     app.get("/" , async (req , res)=>{
         if (!req.session.user) {
             res.redirect('/login');
@@ -175,6 +164,7 @@ try {
             res.redirect("/user_dashboard")
         }
     });
+
     app.get("/user_dashboard" , async (req , res)=>{
         if (req.session.user) {
             try {
@@ -195,7 +185,6 @@ try {
     });
 
     app.get('/users', (req, res) => {
-
         if (req.session.user && req.session.user.level === "admin") {
             db.all('SELECT id, username, password, mainRid FROM users', [], (err, rows) => {
                 if (err) {
@@ -250,7 +239,6 @@ try {
             res.send("Invalid permissions");
         }
     });
-
 
     app.post('/update/:id', (req, res) => {
         const userId = req.params.id;
@@ -337,21 +325,22 @@ try {
                     }
                     logger.debug(level)
                     logger.info(`A new user has been created with ID: ${this.lastID}`);
+
                     const message = 'Registered successfully!';
                     const redirectUrl = '/login';
 
                     res.send(`
-                            <html>
-                                <head>
-                                    <title>Registered</title>
-                                    Registered. Redirecting to login
-                                    <script>
-                                        setTimeout(function() {
-                                            window.location.href = '${redirectUrl}';
-                                        }, 3000);
-                                    </script>
-                                </head>
-                            </html>
+                        <html>
+                            <head>
+                                <title>Registered</title>
+                                Registered. Redirecting to login
+                                <script>
+                                    setTimeout(function() {
+                                        window.location.href = '${redirectUrl}';
+                                    }, 3000);
+                                </script>
+                            </head>
+                        </html>
                     `);
                 });
             });
@@ -419,9 +408,11 @@ try {
             res.redirect("/login")
         }
     });
+
     app.get("/unication" , (req , res)=>{
         res.render("g5", {selected_channel: req.query.channel, rid: req.query.rid, mode: req.query.mode, zone: req.query.zone, networkName: networkName, endPointForClient: config.configuration.endPointForClient, socketAuthToken: config.configuration.socketAuthToken});
     });
+
     app.get("/g5" , async (req , res)=>{
         try {
             const sheetTabs = await getSheetTabs(googleSheetClient, sheetId);
@@ -436,6 +427,7 @@ try {
             res.status(500).send("Error fetching sheet data");
         }
     });
+
     app.get("/console", async (req, res) => {
         try {
             let rid = "502";
@@ -451,9 +443,11 @@ try {
             res.status(500).send("Error fetching sheet data");
         }
     });
+
     app.get("/sys_view" , (req , res)=>{
         res.render("systemView", {networkName, endPointForClient: config.configuration.endPointForClient, socketAuthToken: config.configuration.socketAuthToken});
     });
+
     app.get("/sys_view/admin", (req , res)=>{
         if (req.session.user && req.session.user.level === "admin") {
             res.render("adminView", {networkName, endPointForClient: config.configuration.endPointForClient, socketAuthToken: config.configuration.socketAuthToken});
@@ -461,9 +455,11 @@ try {
             res.send("Invalid permissions");
         }
     });
+
     app.get("/affiliations" , (req , res)=>{
         res.render("affiliations", {affiliations, networkName, endPointForClient: config.configuration.endPointForClient, socketAuthToken: config.configuration.socketAuthToken});
     });
+
     app.get("/tones" , async (req , res)=>{
         try {
             const sheetTabs = await getSheetTabs(googleSheetClient, sheetId);
@@ -497,9 +493,8 @@ try {
             res.status(500).send("Error fetching sheet data");
         }
     });
-    /*
-        API routes
-     */
+
+    // API routes
     if (config.configuration.apiEnable) {
         app.get("/api/affs", (req, res) => {
             const affiliationsJSON = affiliations.map((aff) => {
@@ -570,6 +565,7 @@ try {
             minute: 'numeric',
             second: 'numeric',
         };
+
         return currentDate.toLocaleString('en-US', cdtOptions);
     }
 
@@ -579,6 +575,7 @@ try {
                 controlChannel,
                 voiceChannels: []
             };
+
             return acc;
         }, {});
 
@@ -586,7 +583,9 @@ try {
             const socketId = voiceChannelData.socketId;
             const socketInfo = socketsStatus[socketId];
 
-            if (!socketInfo || !controlChannels.includes(socketInfo.controlChannel)) continue;
+            if (!socketInfo || !controlChannels.includes(socketInfo.controlChannel)) {
+                continue;
+            }
 
             controlChannelMapping[socketInfo.controlChannel].voiceChannels.push({
                 voiceChannel: channelName,
@@ -610,10 +609,12 @@ try {
         io.emit('AFFILIATION_LOOKUP_UPDATE', affiliations);
         return true;
     }
+
     function addAffiliation(rid, channel){
         affiliations.push({ srcId: rid, dstId: channel });
         io.emit('AFFILIATION_LOOKUP_UPDATE', affiliations);
     }
+
     function getAffiliation(rid) {
         const affiliation = affiliations.find(affiliation => affiliation.srcId === rid);
         return affiliation ? affiliation.channel : false;
@@ -624,13 +625,15 @@ try {
     }
 
     function forceGrant(data){
-        // TODO: Fix for new logic
-        /*
-            WARNING: MAY NOT WORK PROPERLY AT THIS TIME
+        /**
+         * WARNING: MAY NOT WORK PROPERLY AT THIS TIME
+         *
+         * TODO: Fix for new logic
          */
         data.stamp = getDaTime();
         io.emit("VOICE_CHANNEL_GRANT", data);
         logger.info(`FORCED VOICE_CHANNEL_GRANT GIVEN TO: ${data.srcId} ON: ${data.dstId}`);
+
         if (enableDiscord && discordVoiceG) {
             sendDiscord(`Voice Transmission from ${data.srcId} on ${data.dstId}`);
         }
@@ -644,6 +647,7 @@ try {
                 return channel;
             }
         }
+
         return null;
     }
 
@@ -653,6 +657,7 @@ try {
             activeVoiceChannels[availableChannel] = { dstId, socketId, srcId };
             return availableChannel;
         }
+
         return null;
     }
 
@@ -674,270 +679,287 @@ try {
             logger.debug('JWT Verified Successfully');
             next();
         });
-    }).on("connection", function (socket) {
-        const socketId = socket.id;
-        socketsStatus[socket.id] = {};
+    })
+        .on("connection", function (socket) {
+            const socketId = socket.id;
+            socketsStatus[socket.id] = {};
 
-        broadcastChannelUpdates();
-
-        socket.on("REQUEST_CHANNEL_UPDATES", function (data){
             broadcastChannelUpdates();
-        });
 
-        socket.on("VOICE_CHANNEL_CONFIRMED", function (data) {
-            if (data.srcId && grantedChannels[data.dstId]) {
-                socketsStatus[socketId].voiceChannelActive = true;
-                logger.debug(`Voice channel confirmed ${data.srcId} on ${data.dstId}`);
-            }
-        });
+            socket.on("REQUEST_CHANNEL_UPDATES", function (data){
+                broadcastChannelUpdates();
+            });
 
-        socket.on("JOIN_CONTROL_CHANNEL", (data) => {
-            if (controlChannels.includes(data.channel)) {
-                socket.join(data.channel);
-                socket.emit("CONTROL_CHANNEL_ACK", {
-                    message: "Connected to Control Channel: " + data.channel
-                });
-            } else {
-                socket.emit("CONTROL_CHANNEL_ERROR", {
-                    message: "Invalid Control Channel: " + data.channel
-                });
-            }
-        });
-
-        socket.on("voice", function (data) {
-            var newData = data.split(";");
-            newData[0] = "data:audio/wav;";
-            newData = newData.join(";");
-            const senderDstId = socketsStatus[socketId].dstId;
-            const activeVoiceChannel = socketsStatus[socketId].voiceChannel;
-            for (const id in socketsStatus) {
-                const recipientDstId = socketsStatus[id].dstId;
-                if (senderDstId === recipientDstId)
-                    if (socketsStatus[socketId].voiceChannelActive) {
-                        socket.to(activeVoiceChannel).emit("send", {
-                            newData: newData,
-                            srcId: socketsStatus[id].srcId,
-                            dstId: socketsStatus[id].dstId,
-                            voiceChannel: socketsStatus[id].voiceChannel,
-                            controlChannel: socketsStatus[id].controlChannel
-                        });
-                    } else {
-                        logger.warn(`srcID: ${socketsStatus[socketId].srcId} not on voice channel; stand by`);
-                    }
-            }
-        });
-
-        socket.on("userInformation", function (data) {
-            socketsStatus[socketId] = data;
-            io.sockets.emit("usersUpdate", socketsStatus);
-        });
-
-        socket.on("AFFILIATION_LIST_REQUEST", function(){
-            io.emit('AFFILIATION_LOOKUP_UPDATE', affiliations);
-        });
-
-        socket.on("VOICE_CHANNEL_REQUEST", function (data) {
-            logger.info(`VOICE_CHANNEL_REQUEST FROM: ${data.srcId} TO: ${data.dstId}`);
-            const cdtDateTime = getDaTime();
-            data.stamp = cdtDateTime;
-
-            if (enableDiscord && discordVoiceR) {
-                sendDiscord(`Voice Request from ${data.srcId} on ${data.dstId} at ${data.stamp}`);
-            }
-            io.emit("VOICE_CHANNEL_REQUEST", data);
-
-            setTimeout(function () {
-                let integerNumber = parseInt(data.srcId);
-                if (!Number.isInteger(integerNumber)) {
-                    data.stamp = cdtDateTime;
-                    io.emit("VOICE_CHANNEL_DENY", data);
-                    logger.warn("Invalid RID");
-                    return;
+            socket.on("VOICE_CHANNEL_CONFIRMED", function (data) {
+                if (data.srcId && grantedChannels[data.dstId]) {
+                    socketsStatus[socketId].voiceChannelActive = true;
+                    logger.debug(`Voice channel confirmed ${data.srcId} on ${data.dstId}`);
                 }
+            });
 
-                if (isRadioAffiliated(data.srcId, data.dstId)) {
+            socket.on("JOIN_CONTROL_CHANNEL", (data) => {
+                if (controlChannels.includes(data.channel)) {
+                    socket.join(data.channel);
+                    socket.emit("CONTROL_CHANNEL_ACK", {
+                        message: "Connected to Control Channel: " + data.channel
+                    });
+                } else {
+                    socket.emit("CONTROL_CHANNEL_ERROR", {
+                        message: "Invalid Control Channel: " + data.channel
+                    });
+                }
+            });
 
-                    let assignedChannel = assignVoiceChannel(data.dstId, socket.id, data.srcId);
-                    if (assignedChannel) {
-                        data.newChannel = assignedChannel;
-
-                        for (const id in socketsStatus) {
-                            if (socketsStatus[id].dstId === data.dstId) {
-                                io.to(socketsStatus[id].controlChannel).emit("VOICE_CHANNEL_GRANT", data);
-                                socket.join(assignedChannel);
-                            }
+            socket.on("voice", function (data) {
+                var newData = data.split(";");
+                newData[0] = "data:audio/wav;";
+                newData = newData.join(";");
+                const senderDstId = socketsStatus[socketId].dstId;
+                const activeVoiceChannel = socketsStatus[socketId].voiceChannel;
+                for (const id in socketsStatus) {
+                    const recipientDstId = socketsStatus[id].dstId;
+                    if (senderDstId === recipientDstId)
+                        if (socketsStatus[socketId].voiceChannelActive) {
+                            socket.to(activeVoiceChannel).emit("send", {
+                                newData: newData,
+                                srcId: socketsStatus[id].srcId,
+                                dstId: socketsStatus[id].dstId,
+                                voiceChannel: socketsStatus[id].voiceChannel,
+                                controlChannel: socketsStatus[id].controlChannel
+                            });
+                        } else {
+                            logger.warn(`srcID: ${socketsStatus[socketId].srcId} not on voice channel; stand by`);
                         }
-                        broadcastChannelUpdates();
-                        logger.info(`VOICE_CHANNEL_GRANT GIVEN TO: ${data.srcId} ON: ${data.dstId} AT: ${assignedChannel}`);
-                        if (enableDiscord && discordVoiceG) {
-                            sendDiscord(`Voice Transmission from ${data.srcId} on ${data.dstId} at ${data.stamp}`);
-                        }
-                        grantedChannels[data.dstId] = true;
-                        grantedRids[data.srcId] = true;
+                }
+            });
 
-                    } else {
+            socket.on("userInformation", function (data) {
+                socketsStatus[socketId] = data;
+                io.sockets.emit("usersUpdate", socketsStatus);
+            });
+
+            socket.on("AFFILIATION_LIST_REQUEST", function(){
+                io.emit('AFFILIATION_LOOKUP_UPDATE', affiliations);
+            });
+
+            socket.on("VOICE_CHANNEL_REQUEST", function (data) {
+                logger.info(`VOICE_CHANNEL_REQUEST FROM: ${data.srcId} TO: ${data.dstId}`);
+                const cdtDateTime = getDaTime();
+                data.stamp = cdtDateTime;
+
+                if (enableDiscord && discordVoiceR) {
+                    sendDiscord(`Voice Request from ${data.srcId} on ${data.dstId} at ${data.stamp}`);
+                }
+                io.emit("VOICE_CHANNEL_REQUEST", data);
+
+                setTimeout(function () {
+                    let integerNumber = parseInt(data.srcId);
+                    if (!Number.isInteger(integerNumber)) {
                         data.stamp = cdtDateTime;
                         io.emit("VOICE_CHANNEL_DENY", data);
-                        logger.info(`VOICE_CHANNEL_DENY GIVEN TO: ${data.srcId} ON: ${data.dstId}`);
-                        if (enableDiscord && discordVoiceD) {
-                            sendDiscord(`Voice Deny from ${data.srcId} on ${data.dstId} at ${data.stamp}`);
-                        }
+                        logger.warn("Invalid RID");
+                        return;
                     }
-                } else {
-                    io.emit("VOICE_CHANNEL_DENY", data);
-                    logger.info(`VOICE_CHANNEL_DENY GIVEN TO: ${data.srcId} ON: ${data.dstId}`);
-                    logger.warn(data.srcId + " Non affiliated voice request not permitted for " + data.dstId);
-                }
-            }, 750);
-        });
 
-        socket.on("RELEASE_VOICE_CHANNEL", function (data){
-            data.stamp = getDaTime();
-            logger.info(`RELEASE_VOICE_CHANNEL FROM: ${data.srcId} TO: ${data.dstId}`);
-            io.emit("VOICE_CHANNEL_RELEASE", data);
-            grantedRids[data.srcId] = false;
-            grantedChannels[data.dstId] = false;
-            let channel = data.newChannel;
-            Object.keys(activeVoiceChannels).forEach(channel => {
-                if (activeVoiceChannels[channel].dstId === data.dstId && activeVoiceChannels[channel].socketId === socket.id) {
-                    delete activeVoiceChannels[channel];
-                }
+                    if (isRadioAffiliated(data.srcId, data.dstId)) {
+
+                        let assignedChannel = assignVoiceChannel(data.dstId, socket.id, data.srcId);
+                        if (assignedChannel) {
+                            data.newChannel = assignedChannel;
+
+                            for (const id in socketsStatus) {
+                                if (socketsStatus[id].dstId === data.dstId) {
+                                    io.to(socketsStatus[id].controlChannel).emit("VOICE_CHANNEL_GRANT", data);
+                                    socket.join(assignedChannel);
+                                }
+                            }
+                            broadcastChannelUpdates();
+                            logger.info(`VOICE_CHANNEL_GRANT GIVEN TO: ${data.srcId} ON: ${data.dstId} AT: ${assignedChannel}`);
+                            if (enableDiscord && discordVoiceG) {
+                                sendDiscord(`Voice Transmission from ${data.srcId} on ${data.dstId} at ${data.stamp}`);
+                            }
+                            grantedChannels[data.dstId] = true;
+                            grantedRids[data.srcId] = true;
+
+                        } else {
+                            data.stamp = cdtDateTime;
+                            io.emit("VOICE_CHANNEL_DENY", data);
+                            logger.info(`VOICE_CHANNEL_DENY GIVEN TO: ${data.srcId} ON: ${data.dstId}`);
+                            if (enableDiscord && discordVoiceD) {
+                                sendDiscord(`Voice Deny from ${data.srcId} on ${data.dstId} at ${data.stamp}`);
+                            }
+                        }
+                    } else {
+                        io.emit("VOICE_CHANNEL_DENY", data);
+                        logger.info(`VOICE_CHANNEL_DENY GIVEN TO: ${data.srcId} ON: ${data.dstId}`);
+                        logger.warn(data.srcId + " Non affiliated voice request not permitted for " + data.dstId);
+                    }
+                }, 750);
             });
-            broadcastChannelUpdates();
-        });
 
-        socket.on("disconnect", function (data) {
-            if (socketsStatus[socketId].srcId) {
-                removeAffiliation(socketsStatus[socketId].srcId);
-            }
-            Object.keys(activeVoiceChannels).forEach(channel => {
-                if (activeVoiceChannels[channel].socketId === socket.id) {
-                    delete activeVoiceChannels[channel];
-                }
+            socket.on("RELEASE_VOICE_CHANNEL", function (data){
+                data.stamp = getDaTime();
+                logger.info(`RELEASE_VOICE_CHANNEL FROM: ${data.srcId} TO: ${data.dstId}`);
+                io.emit("VOICE_CHANNEL_RELEASE", data);
+                grantedRids[data.srcId] = false;
+                grantedChannels[data.dstId] = false;
+                let channel = data.newChannel;
+                Object.keys(activeVoiceChannels).forEach(channel => {
+                    if (activeVoiceChannels[channel].dstId === data.dstId && activeVoiceChannels[channel].socketId === socket.id) {
+                        delete activeVoiceChannels[channel];
+                    }
+                });
+                broadcastChannelUpdates();
             });
-            delete socketsStatus[socketId];
-        });
 
-        socket.on("CHANNEL_AFFILIATION_REQUEST", function (data){
-            data.stamp = getDaTime();
-            io.emit("CHANNEL_AFFILIATION_REQUEST", data);
-            if (enableDiscord && discordAffR) {
-                sendDiscord(`Affiliation Grant to ${data.srcId} on ${data.dstId} at ${data.stamp}`);
-            }
-            setTimeout(function (){
-                io.emit("CHANNEL_AFFILIATION_GRANTED", data);
-                if (enableDiscord && discordAffG) {
+            socket.on("disconnect", function (data) {
+                if (socketsStatus[socketId].srcId) {
+                    removeAffiliation(socketsStatus[socketId].srcId);
+                }
+                Object.keys(activeVoiceChannels).forEach(channel => {
+                    if (activeVoiceChannels[channel].socketId === socket.id) {
+                        delete activeVoiceChannels[channel];
+                    }
+                });
+                delete socketsStatus[socketId];
+            });
+
+            socket.on("CHANNEL_AFFILIATION_REQUEST", function (data){
+                data.stamp = getDaTime();
+                io.emit("CHANNEL_AFFILIATION_REQUEST", data);
+                if (enableDiscord && discordAffR) {
                     sendDiscord(`Affiliation Grant to ${data.srcId} on ${data.dstId} at ${data.stamp}`);
                 }
-                if (!getAffiliation(data.srcId)){
-                    logger.info("AFFILIATION GRANTED TO: " + data.srcId + " ON: " + data.dstId);
-                    addAffiliation(data.srcId, data.dstId, data.stamp = getDaTime());
-                } else {
-                    logger.info("AFFILIATION GRANTED TO: " + data.srcId + " ON: " + data.dstId + " AND REMOVED OLD AFF");
-                    removeAffiliation(data.srcId);
-                    addAffiliation(data.srcId, data.dstId);
+                setTimeout(function (){
+                    io.emit("CHANNEL_AFFILIATION_GRANTED", data);
+                    if (enableDiscord && discordAffG) {
+                        sendDiscord(`Affiliation Grant to ${data.srcId} on ${data.dstId} at ${data.stamp}`);
+                    }
+                    if (!getAffiliation(data.srcId)){
+                        logger.info("AFFILIATION GRANTED TO: " + data.srcId + " ON: " + data.dstId);
+                        addAffiliation(data.srcId, data.dstId, data.stamp = getDaTime());
+                    } else {
+                        logger.info("AFFILIATION GRANTED TO: " + data.srcId + " ON: " + data.dstId + " AND REMOVED OLD AFF");
+                        removeAffiliation(data.srcId);
+                        addAffiliation(data.srcId, data.dstId);
+                    }
+                },1500);
+            });
+
+            socket.on("REMOVE_AFFILIATION", function (data){
+                data.stamp = getDaTime();
+                removeAffiliation(data.srcId);
+                logger.info("AFFILIATION REMOVED: " + data.srcId + " ON: " + data.dstId);
+                io.emit("REMOVE_AFFILIATION_GRANTED", data);
+            });
+
+            socket.on("EMERGENCY_CALL", function (data){
+                if (enableDiscord && discordEmerg) {
+                    sendDiscord(`Affiliation Grant to ${data.srcId} on ${data.dstId} at ${data.stamp}`);
                 }
-            },1500);
-        });
-        socket.on("REMOVE_AFFILIATION", function (data){
-            data.stamp = getDaTime();
-            removeAffiliation(data.srcId);
-            logger.info("AFFILIATION REMOVED: " + data.srcId + " ON: " + data.dstId);
-            io.emit("REMOVE_AFFILIATION_GRANTED", data);
-        });
+                data.stamp = getDaTime();
+                logger.info("EMERGENCY_CALL FROM: " + data.srcId + " ON: " + data.dstId)
+                io.emit("EMERGENCY_CALL", data);
+            });
 
-        socket.on("EMERGENCY_CALL", function (data){
-            if (enableDiscord && discordEmerg) {
-                sendDiscord(`Affiliation Grant to ${data.srcId} on ${data.dstId} at ${data.stamp}`);
-            }
-            data.stamp = getDaTime();
-            logger.info("EMERGENCY_CALL FROM: " + data.srcId + " ON: " + data.dstId)
-            io.emit("EMERGENCY_CALL", data);
-        });
+            socket.on("RID_INHIBIT", async function(data) {
+                if (enableDiscord && discordInhibit) {
+                    sendDiscord(`Inhibit sent to ${data.srcId} on ${data.dstId} at ${data.stamp}`);
+                }
+                data.stamp = getDaTime();
+                const ridToInhibit = data.dstId;
+                const ridAcl = await readGoogleSheet(googleSheetClient, sheetId, "rid_acl", "A:B");
+                io.emit("RID_INHIBIT", data);
+                const matchingIndex = ridAcl.findIndex(entry => entry[0] === ridToInhibit);
 
-        socket.on("RID_INHIBIT", async function(data) {
-            if (enableDiscord && discordInhibit) {
-                sendDiscord(`Inhibit sent to ${data.srcId} on ${data.dstId} at ${data.stamp}`);
-            }
-            data.stamp = getDaTime();
-            const ridToInhibit = data.dstId;
-            const ridAcl = await readGoogleSheet(googleSheetClient, sheetId, "rid_acl", "A:B");
-            io.emit("RID_INHIBIT", data);
-            const matchingIndex = ridAcl.findIndex(entry => entry[0] === ridToInhibit);
+                if (matchingIndex !== -1) {
+                    ridAcl[matchingIndex][1] = '0';
+                    await updateGoogleSheet(googleSheetClient, sheetId, "rid_acl", "A:B", ridAcl);
+                    logger.info(`RID_INHIBIT: ${ridToInhibit}`);
+                }
+            });
 
-            if (matchingIndex !== -1) {
-                ridAcl[matchingIndex][1] = '0';
-                await updateGoogleSheet(googleSheetClient, sheetId, "rid_acl", "A:B", ridAcl);
-                logger.info(`RID_INHIBIT: ${ridToInhibit}`);
-            }
-        });
+            socket.on("RID_INHIBIT_ACK", function (data){
+                io.emit("RID_INHIBIT_ACK", data);
+            });
 
-        socket.on("RID_INHIBIT_ACK", function (data){
-            io.emit("RID_INHIBIT_ACK", data);
-        });
+            socket.on("RID_UNINHIBIT_ACK", function (data){
+                io.emit("RID_UNINHIBIT_ACK", data);
+            });
 
-        socket.on("RID_UNINHIBIT_ACK", function (data){
-            io.emit("RID_UNINHIBIT_ACK", data);
-        });
+            socket.on("RID_UNINHIBIT", async function (data){
+                data.stamp = getDaTime();
+                const ridToUnInhibit = data.dstId;
+                const ridAcl = await readGoogleSheet(googleSheetClient, sheetId, "rid_acl", "A:B");
+                io.emit("RID_UNINHIBIT", data);
+                const matchingIndex = ridAcl.findIndex(entry => entry[0] === ridToUnInhibit);
 
-        socket.on("RID_UNINHIBIT", async function (data){
-            data.stamp = getDaTime();
-            const ridToUnInhibit = data.dstId;
-            const ridAcl = await readGoogleSheet(googleSheetClient, sheetId, "rid_acl", "A:B");
-            io.emit("RID_UNINHIBIT", data);
-            const matchingIndex = ridAcl.findIndex(entry => entry[0] === ridToUnInhibit);
+                if (matchingIndex !== -1) {
+                    ridAcl[matchingIndex][1] = '1';
+                    await updateGoogleSheet(googleSheetClient, sheetId, "rid_acl", "A:B", ridAcl);
+                    logger.info(`RID_UNINHIBIT: ${ridToUnInhibit}`);
+                }
+            });
 
-            if (matchingIndex !== -1) {
-                ridAcl[matchingIndex][1] = '1';
-                await updateGoogleSheet(googleSheetClient, sheetId, "rid_acl", "A:B", ridAcl);
-                logger.info(`RID_UNINHIBIT: ${ridToUnInhibit}`);
-            }
-        });
+            socket.on("INFORMATION_ALERT", function(data){
+                io.emit("INFORMATION_ALERT", data);
+                forceGrant(data);
+                setTimeout(function (){
+                    io.emit("VOICE_CHANNEL_RELEASE", data);
+                }, 1500);
+            });
 
-        socket.on("INFORMATION_ALERT", function(data){
-            io.emit("INFORMATION_ALERT", data);
-            forceGrant(data);
-            setTimeout(function (){
-                io.emit("VOICE_CHANNEL_RELEASE", data);
-            }, 1500);
-        });
-        socket.on("AUTO_DISPATCH_CHANNEL_BROADCAST", function(data){
-            io.emit("AUTO_DISPATCH_CHANNEL_BROADCAST", data);
-            forceGrant(data);
-            setTimeout(function (){
-                io.emit("VOICE_CHANNEL_RELEASE", data);
-            }, 8000);
-        });
+            socket.on("AUTO_DISPATCH_CHANNEL_BROADCAST", function(data){
+                io.emit("AUTO_DISPATCH_CHANNEL_BROADCAST", data);
+                forceGrant(data);
+                setTimeout(function (){
+                    io.emit("VOICE_CHANNEL_RELEASE", data);
+                }, 8000);
+            });
 
-        socket.on("CANCELLATION_ALERT", function(data){
-            io.emit("CANCELLATION_ALERT", data);
-            forceGrant(data);
-            setTimeout(function (){
-                io.emit("VOICE_CHANNEL_RELEASE", data);
-            }, 1500);
-        });
+            socket.on("CANCELLATION_ALERT", function(data){
+                io.emit("CANCELLATION_ALERT", data);
+                forceGrant(data);
+                setTimeout(function (){
+                    io.emit("VOICE_CHANNEL_RELEASE", data);
+                }, 1500);
+            });
 
-        socket.on("REG_REQUEST", async function (rid){
-            io.emit("REG_REQUEST", rid);
-            String.prototype.isNumber = function(){return /^\d+$/.test(this);}
-            let ridAcl = await readGoogleSheet(googleSheetClient, sheetId, "rid_acl", "A:B");
-            const matchingEntry = ridAcl.find(entry => entry[0] === rid);
-            const denyCount = regDenyCount[rid] || 0;
-            if (enableDiscord && discordRegR){
-                sendDiscord(`Reg Request: ${rid}`);
-            }
-            setTimeout(function (){
-                if (rid.isNumber()) {
-                    if (matchingEntry) {
-                        const inhibit = matchingEntry[1];
-                        if (inhibit === '1') {
-                            if (enableDiscord && discordRegG){
-                                sendDiscord(`Reg grant: ${rid}`);
+            socket.on("REG_REQUEST", async function (rid){
+                io.emit("REG_REQUEST", rid);
+                String.prototype.isNumber = function(){return /^\d+$/.test(this);}
+                let ridAcl = await readGoogleSheet(googleSheetClient, sheetId, "rid_acl", "A:B");
+                const matchingEntry = ridAcl.find(entry => entry[0] === rid);
+                const denyCount = regDenyCount[rid] || 0;
+                if (enableDiscord && discordRegR){
+                    sendDiscord(`Reg Request: ${rid}`);
+                }
+                setTimeout(function (){
+                    if (rid.isNumber()) {
+                        if (matchingEntry) {
+                            const inhibit = matchingEntry[1];
+                            if (inhibit === '1') {
+                                if (enableDiscord && discordRegG){
+                                    sendDiscord(`Reg grant: ${rid}`);
+                                }
+                                io.emit("REG_GRANTED", rid);
+                                logger.info("REG_GRANTED: " + rid);
+                            } else {
+                                io.emit("RID_INHIBIT", {srcId: rid, dstId: "999999999"});
                             }
-                            io.emit("REG_GRANTED", rid);
-                            logger.info("REG_GRANTED: " + rid);
                         } else {
-                            io.emit("RID_INHIBIT", {srcId: rid, dstId: "999999999"});
+                            if (denyCount >= 3){
+                                if (enableDiscord && discordRegRfs){
+                                    sendDiscord(`Reg refuse: ${rid}`);
+                                }
+                                io.emit("REG_REFUSE", rid);
+                            } else {
+                                if (enableDiscord && discordRegD){
+                                    sendDiscord(`REG_REFUSE: ${rid}`);
+                                }
+                                io.emit("REG_REFUSE", rid);
+                                regDenyCount[rid] = denyCount + 1;
+                            }
                         }
                     } else {
                         if (denyCount >= 3){
@@ -947,45 +969,34 @@ try {
                             io.emit("REG_REFUSE", rid);
                         } else {
                             if (enableDiscord && discordRegD){
-                                sendDiscord(`REG_REFUSE: ${rid}`);
+                                sendDiscord(`Reg deny: ${rid}`);
                             }
-                            io.emit("REG_REFUSE", rid);
+                            io.emit("REG_DENIED", rid);
                             regDenyCount[rid] = denyCount + 1;
                         }
                     }
-                } else {
-                    if (denyCount >= 3){
-                        if (enableDiscord && discordRegRfs){
-                            sendDiscord(`Reg refuse: ${rid}`);
-                        }
-                        io.emit("REG_REFUSE", rid);
-                    } else {
-                        if (enableDiscord && discordRegD){
-                            sendDiscord(`Reg deny: ${rid}`);
-                        }
-                        io.emit("REG_DENIED", rid);
-                        regDenyCount[rid] = denyCount + 1;
-                    }
-                }
-            }, 1500);
+                }, 1500);
+            });
+
+            socket.on("RID_PAGE", function(data){
+                data.stamp = getDaTime();
+                logger.info("RID PAGE srcId: ", data.srcId, " dstId: ", data.dstId)
+                setTimeout(()=>{
+                    io.emit("PAGE_RID", data);
+                }, 1000);
+            });
+
+            socket.on("RID_PAGE_ACK", function(data){
+                data.stamp = getDaTime();
+                setTimeout(()=>{
+                    io.emit("PAGE_RID_ACK", data);
+                }, 1500);
+            });
+
+            socket.on("FORCE_VOICE_CHANNEL_GRANT", function(data){
+                forceGrant(data);
+            });
         });
-        socket.on("RID_PAGE", function(data){
-            data.stamp = getDaTime();
-            logger.info("RID PAGE srcId: ", data.srcId, " dstId: ", data.dstId)
-            setTimeout(()=>{
-                io.emit("PAGE_RID", data);
-            }, 1000);
-        });
-        socket.on("RID_PAGE_ACK", function(data){
-            data.stamp = getDaTime();
-            setTimeout(()=>{
-                io.emit("PAGE_RID_ACK", data);
-            }, 1500);
-        });
-        socket.on("FORCE_VOICE_CHANNEL_GRANT", function(data){
-            forceGrant(data);
-        });
-    });
 
     async function getGoogleSheetClient() {
         const auth = new google.auth.GoogleAuth({
@@ -998,6 +1009,7 @@ try {
             auth: authClient,
         });
     }
+
     async function getSheetTabs(googleSheetClient, sheetId) {
         const res = await googleSheetClient.spreadsheets.get({
             spreadsheetId: sheetId,
@@ -1032,6 +1044,7 @@ try {
             },
         })
     }
+
     async function updateGoogleSheet(googleSheetClient, sheetId, tabName, range, data) {
         await googleSheetClient.spreadsheets.values.update({
             spreadsheetId: sheetId,
@@ -1048,7 +1061,6 @@ try {
         const protocol = useHttps ? 'https' : 'http';
         logger.info(`${networkName} is running on ${protocol}://${networkBindAddress}:${networkBindPort}`);
     });
-
 } catch (error) {
     console.error('Error starting. Maybe config file?: ', error.message);
 }

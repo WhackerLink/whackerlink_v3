@@ -1,77 +1,79 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="Content-Security-Policy" content="script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://code.responsivevoice.org https://app.responsivevoice.org; media-src 'self' data:">
+    <head>
+        <meta charset="UTF-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta http-equiv="Content-Security-Policy" content="script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://code.responsivevoice.org https://app.responsivevoice.org; media-src 'self' data:">
 
-    <title>Affiliations</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.1.2/socket.io.js" integrity="sha512-iZIBSs+gDyTH0ZhUem9eQ1t4DcEn2B9lHxfRMeGQhyNdSUz+rb+5A3ummX6DQTOIs1XK0gOteOg/LPtSo9VJ+w==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
-</head>
-<script>
-    var socket = io.connect("<%= endPointForClient %>", {
-        query: { token: "<%= socketAuthToken %>" }
-    });
+        <title>Affiliations</title>
 
-    function main(){
-        socket.emit("AFFILIATION_LIST_REQUEST");
-        socket.emit("JOIN_CONTROL_CHANNEL", { channel: "854.9625" });
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.1.2/socket.io.js" integrity="sha512-iZIBSs+gDyTH0ZhUem9eQ1t4DcEn2B9lHxfRMeGQhyNdSUz+rb+5A3ummX6DQTOIs1XK0gOteOg/LPtSo9VJ+w==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 
-        socket.on("AFFILIATION_LOOKUP_UPDATE", function (data) {
-            console.log(`UPDATED: ${data}`)
-            const affiliationsTableBody = document.getElementById("affiliationsTableBody");
-            affiliationsTableBody.innerHTML = '';
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    </head>
+    <script>
+        var socket = io.connect("<%= endPointForClient %>", {
+            query: { token: "<%= socketAuthToken %>" }
+        });
 
-            data.forEach(affiliation => {
-                const newRow = affiliationsTableBody.insertRow();
+        function main(){
+            socket.emit("AFFILIATION_LIST_REQUEST");
+            socket.emit("JOIN_CONTROL_CHANNEL", { channel: "854.9625" });
 
-                const cell1 = newRow.insertCell(0);
-                const cell2 = newRow.insertCell(1);
+            socket.on("AFFILIATION_LOOKUP_UPDATE", function (data) {
+                console.log(`UPDATED: ${data}`)
+                const affiliationsTableBody = document.getElementById("affiliationsTableBody");
+                affiliationsTableBody.innerHTML = '';
 
-                cell1.textContent = affiliation.srcId;
-                cell2.textContent = affiliation.dstId;
+                data.forEach(affiliation => {
+                    const newRow = affiliationsTableBody.insertRow();
 
-                newRow.setAttribute("data-rid", affiliation.srcId);
-                newRow.setAttribute("data-channel", affiliation.dstId);
+                    const cell1 = newRow.insertCell(0);
+                    const cell2 = newRow.insertCell(1);
 
-                socket.on("VOICE_CHANNEL_GRANT", function (voiceData) {
-                    console.log(voiceData)
-                    if (affiliation.srcId === voiceData.srcId && affiliation.dstId === voiceData.dstId) {
-                        newRow.classList.add("table-primary");
-                    }
-                });
-                socket.on("VOICE_CHANNEL_RELEASE", function (voiceData) {
-                    if (affiliation.srcId === voiceData.srcId && affiliation.dstId === voiceData.dstId) {
-                        newRow.classList.remove("table-success");
-                        newRow.classList.remove("table-primary");
-                        newRow.classList.remove("table-secondary");
-                        newRow.classList.remove("table-info");
-                        newRow.classList.remove("table-warning");
-                        newRow.classList.remove("table-danger");
-                    }
+                    cell1.textContent = affiliation.srcId;
+                    cell2.textContent = affiliation.dstId;
+
+                    newRow.setAttribute("data-rid", affiliation.srcId);
+                    newRow.setAttribute("data-channel", affiliation.dstId);
+
+                    socket.on("VOICE_CHANNEL_GRANT", function (voiceData) {
+                        console.log(voiceData)
+                        if (affiliation.srcId === voiceData.srcId && affiliation.dstId === voiceData.dstId) {
+                            newRow.classList.add("table-primary");
+                        }
+                    });
+                    socket.on("VOICE_CHANNEL_RELEASE", function (voiceData) {
+                        if (affiliation.srcId === voiceData.srcId && affiliation.dstId === voiceData.dstId) {
+                            newRow.classList.remove("table-success");
+                            newRow.classList.remove("table-primary");
+                            newRow.classList.remove("table-secondary");
+                            newRow.classList.remove("table-info");
+                            newRow.classList.remove("table-warning");
+                            newRow.classList.remove("table-danger");
+                        }
+                    });
                 });
             });
-        });
-    }
-</script>
-<body class="bg-dark text-light" onload="main()">
+        }
+    </script>
+    <body class="bg-dark text-light" onload="main()">
 
-<div class="container mt-5">
-    <h1>Affiliations</h1>
-    <table class="table table-bordered">
-        <thead>
-        <tr>
-            <th>srcId</th>
-            <th>dstId</th>
-        </tr>
-        </thead>
-        <tbody id="affiliationsTableBody">
+        <div class="container mt-5">
+            <h1>Affiliations</h1>
+            <table class="table table-bordered">
+                <thead>
+                <tr>
+                    <th>srcId</th>
+                    <th>dstId</th>
+                </tr>
+                </thead>
+                <tbody id="affiliationsTableBody">
 
-        </tbody>
-    </table>
-</div>
-</body>
+                </tbody>
+            </table>
+        </div>
+    </body>
 </html>
