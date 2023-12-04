@@ -1,31 +1,31 @@
 system:
-  networkName: 'Whacker Net' #Network name
-  networkBindAddress: '0.0.0.0' #Bind to address for the network
-  networkBindPort: 3000 #Bind to port for the network
+  networkName: 'Whacker Net' # Network name
+  networkBindAddress: '0.0.0.0' # Bind to address for the network
+  networkBindPort: 3000 # Bind to port for the network
 
-  controlChannels: #Multiple control channels work, but doesnt do much for now.
-    - "854.9625" #Change to what you want really doesnt matter
-    - "857.9625" #You will not see this ever active by default at this time. Remove if you want or add more if you want.
+  controlChannels: # Multiple control channels work, but doesn't do much for now.
+    - "854.9625" # Change to what you want really doesn't matter
+    - "857.9625" # You will not see this ever active by default at this time. Remove if you want or add more if you want.
 
-  voiceChannels: #Have as many as you want and your hosting server can handle. If all voice channels are in use, radios will get denied.
+  voiceChannels: # Have as many as you want and your hosting server can handle. If all voice channels are in use, radios will get denied.
     - "853.9625"
     - "855.9625"
 
 paths:
-  fullPath: '/home/user/whackerlink' #FULL path to whackerlink
-  logPath: '/var/log/whackerlink' #Path to send log files to
-  rconLogins: './rcon_logins.json' #FULL path to json rcon logins
-  sheetsJson: './something-124.json' #FULL path to the google sheets json file
+  fullPath: '/home/user/whackerlink' # FULL path to whackerlink
+  logPath: '/var/log/whackerlink' # Path to send log files to
+  rconLogins: './rcon_logins.json' # FULL path to json rcon logins
+  sheetsJson: './google.json' # FULL path to the Google credentials file
 
 configuration:
   logLevel: 1
   debug: false
-  sheetId: '' #Sheet ID for the google sheet
-  grantDenyOccurrence: 5 #How often people will get random grant denys. Higher the number less often. Lowest number is 3.
-  discordWebHookEnable: false #Enable discord functions
-  discordWebHookUrl: '' #Webhook URL
-  httpsEnable: true #Do not change unless going through a proxy. This will NOT work unless it is https
-  apiEnable: false #Recommned leaving disabled for now
+  sheetId: '' # Sheet ID for the Google Sheet
+  grantDenyOccurrence: 5 # How often people will get random grant denys. Higher the number less often. Lowest number is 3.
+  discordWebHookEnable: false # Enable Discord functions
+  discordWebHookUrl: '' # Webhook URL
+  httpsEnable: true # Do not change unless going through a proxy. This will NOT work unless it is https
+  apiEnable: false # Recommned leaving disabled for now
   endPointForClient: http://localhost:5000
   apiToken: "biglongtoken" # MAKE SURE TO MAKE THIS SECURE
   socketAuthToken: "" # Make sure to run the token generator to fill in this value
