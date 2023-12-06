@@ -22,8 +22,9 @@ import Logger from './Logger.js';
 import Peer from './peer.js';
 import Master from './master.js';
 
-import db from './db.js';
+import DatabaseManager from './DatabaseManager.js';
 import path from 'path';
+import logger from "./Logger.js";
 
 const socketsStatus = {};
 const grantedChannels = {};
@@ -99,7 +100,7 @@ try {
 
     const httpsOptions = {
         key: fs.readFileSync(config.paths.fullPath + 'ssl/server.key'),
-        cert: fs.readFileSync(config.paths.fullPath + '/ssl/server.cert')
+        cert: fs.readFileSync(config.paths.fullPath + 'ssl/server.cert')
     };
 
     const httpsApp = express();
@@ -125,9 +126,14 @@ try {
 
     const logger = new Logger(logLevel, logPath, debug);
 
-    // Convert all sockets and database stuff to use the master.js module
+    /*
+     *  Create new instance of the database manager
+     */
+    const dbManager = new DatabaseManager(`${config.paths.fullPath}db/whackerlink_users.db`, logger);
+
+    // TODO: Convert all sockets and database stuff to use the master.js module
     const masters = null; //Placeholder
-    if (masters !== null) {
+    if (false) {
         masters.forEach((master) => {
             // TODO: Move all socket and db stuff to the module
             new Master(
@@ -137,7 +143,9 @@ try {
         });
     }
 
-    // Loop through peers list and attempt to connect
+    /*
+     *  Loop through peers and attempt to create peer connections
+     */
     peers.forEach((peer)=>{
         // Create new peer
         if (peer.enable) {
@@ -186,7 +194,7 @@ try {
 
     app.get('/users', (req, res) => {
         if (req.session.user && req.session.user.level === "admin") {
-            db.all('SELECT id, username, password, mainRid FROM users', [], (err, rows) => {
+            dbManager.db.all('SELECT id, username, password, mainRid FROM users', [], (err, rows) => {
                 if (err) {
                     res.status(500).send('Error retrieving users');
                     console.error(err.message);
@@ -202,7 +210,7 @@ try {
     app.get('/edit/:id', (req, res) => {
         const userId = req.params.id;
         if (req.session.user && req.session.user.level === "admin") {
-            db.get('SELECT * FROM users WHERE id = ?', [userId], (err, user) => {
+            dbManager.db.get('SELECT * FROM users WHERE id = ?', [userId], (err, user) => {
                 if (err) {
                     res.status(500).send('Error retrieving user');
                     logger.error(err.message);
@@ -211,7 +219,7 @@ try {
                 res.render('edit.ejs', {user: user, loggedinuser: req.session.user, networkName});
             });
         } else if(req.session.user.id == userId) {
-            db.get('SELECT * FROM users WHERE id = ?', [userId], (err, user) => {
+            dbManager.db.get('SELECT * FROM users WHERE id = ?', [userId], (err, user) => {
                 if (err) {
                     res.status(500).send('Error retrieving user');
                     logger.error(err.message);
@@ -227,7 +235,7 @@ try {
     app.get('/delete/:id', (req, res) => {
         const userId = req.params.id;
         if (req.session.user && req.session.user.level === "admin") {
-            db.get('SELECT * FROM users WHERE id = ?', [userId], (err, user) => {
+            dbManager.db.get('SELECT * FROM users WHERE id = ?', [userId], (err, user) => {
                 if (err) {
                     res.status(500).send('Error retrieving user');
                     logger.error(err.message);
@@ -244,7 +252,7 @@ try {
         const userId = req.params.id;
         const { username, mainRid, level } = req.body;
         if (req.session.user && req.session.user.level === "admin") {
-            db.run('UPDATE users SET username = ?, mainRid = ?, level = ? WHERE id = ?', [username, mainRid, level, userId], function (err) {
+            dbManager.db.run('UPDATE users SET username = ?, mainRid = ?, level = ? WHERE id = ?', [username, mainRid, level, userId], function (err) {
                 if (err) {
                     res.status(500).send("Error updating user");
                     logger.error(err.message);
@@ -254,7 +262,7 @@ try {
                 res.redirect('/users');
             });
         } else if(req.session.user.id === userId) {
-            db.run('UPDATE users SET username = ?, mainRid = ?, level = ? WHERE id = ?', [username, mainRid, level, userId], function (err) {
+            dbManager.db.run('UPDATE users SET username = ?, mainRid = ?, level = ? WHERE id = ?', [username, mainRid, level, userId], function (err) {
                 if (err) {
                     res.status(500).send("Error updating user");
                     logger.error(err.message);
@@ -271,7 +279,7 @@ try {
     app.post('/delete/:id', (req, res) => {
         const userId = req.params.id;
         if (req.session.user && req.session.user.level === "admin") {
-            db.run('DELETE FROM users WHERE id = ?', [userId], function (err) {
+            dbManager.db.run('DELETE FROM users WHERE id = ?', [userId], function (err) {
                 if (err) {
                     res.status(500).send("Error updating user");
                     logger.error(err.message);
@@ -308,7 +316,7 @@ try {
                 return res.status(500).send("Error hashing password");
             }
 
-            db.get('SELECT id FROM users WHERE username = ?', [username], (err, row) => {
+            dbManager.db.get('SELECT id FROM users WHERE username = ?', [username], (err, row) => {
                 if (err) {
                     logger.error(err.message);
                     return res.status(500).send("Error checking user existence");
@@ -318,7 +326,7 @@ try {
                     return res.status(409).send("User already exists");
                 }
 
-                db.run('INSERT INTO users (username, password, mainRid, level) VALUES (?, ?, ?, ?)', [username, hash, mainRid, level], function(err) {
+                dbManager.db.run('INSERT INTO users (username, password, mainRid, level) VALUES (?, ?, ?, ?)', [username, hash, mainRid, level], function(err) {
                     if (err) {
                         logger.error(err.message);
                         return res.status(500).send("Error registering user");
@@ -354,7 +362,7 @@ try {
     app.post('/login', (req, res) => {
         const { username, password } = req.body;
 
-        db.get('SELECT id, username, password, level, mainRid FROM users WHERE username = ?', [username], (err, row) => {
+        dbManager.db.get('SELECT id, username, password, level, mainRid FROM users WHERE username = ?', [username], (err, row) => {
             if (err) {
                 return res.status(500).send('Error on the server.');
             }
