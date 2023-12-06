@@ -14,8 +14,6 @@ system:
 paths:
   fullPath: '/home/user/whackerlink' # FULL path to whackerlink
   logPath: '/var/log/whackerlink' # Path to send log files to
-  rconLogins: './rcon_logins.json' # FULL path to json rcon logins
-  sheetsJson: './google.json' # FULL path to the Google credentials file
 
 configuration:
   logLevel: 1
@@ -38,7 +36,6 @@ peers: # WIP
     srcId: '9998'
     dstId: Main
     metaData: true
-    rconEnable: true
     endPoint: "http://localhost:5000"
 
 discord:
