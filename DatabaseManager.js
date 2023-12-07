@@ -6,6 +6,7 @@
  * For the full copyright and license information, see the
  * LICENSE file that was distributed with this source code.
  */
+
 import sqlite3 from 'sqlite3';
 import bcrypt from 'bcrypt';
 
