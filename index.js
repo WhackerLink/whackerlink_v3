@@ -7,9 +7,14 @@
  * LICENSE file that was distributed with this source code.
  */
 
+import * as fs from 'fs';
 import * as path from 'path';
 import createDebug from 'debug';
 import configLoader from './src/components/ConfigLoader.js';
+import DatabaseManager from './src/components/DatabaseManager.js';
+import Logger from './src/components/Logger.js';
+import Master from './src/Master.js';
+import Peer from './src/Peer.js';
 
 const debug = createDebug('WhackerLink:index');
 const configIndex = process.argv.indexOf('-c');
@@ -26,20 +31,15 @@ const serviceAccountKeyFile = new URL(path.join('config', 'google.json'), import
 
 const config = configLoader.loadYaml(configFilePath);
 
-import * as fs from 'fs';
 import express from 'express';
 import session from 'express-session';
 import http from 'http';
-import {Server as SocketIOServer} from 'socket.io';
+import { Server as SocketIOServer } from 'socket.io';
 import axios from 'axios';
-import {google} from 'googleapis';
+import { google } from 'googleapis';
 import * as https from 'https';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
-import Logger from './Logger.js';
-import Peer from './peer.js';
-import Master from './master.js';
-import DatabaseManager from './DatabaseManager.js';
 
 const socketsStatus = {};
 const grantedChannels = {};

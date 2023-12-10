@@ -7,7 +7,7 @@
  * LICENSE file that was distributed with this source code.
  */
 
-class Master {
+export default class Master {
     constructor(config, logger) {
         this.config = config;
         this.logger = logger;
@@ -18,5 +18,3 @@ class Master {
         this.logger.debug("not implemented");
     }
 }
-
-export default Master

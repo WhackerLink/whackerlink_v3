@@ -9,11 +9,7 @@
 
 import fs from 'fs';
 
-function writeLog(path, message) {
-    fs.appendFileSync(`${path}whackerlink.log`, `${message}\n`);
-}
-
-class Logger {
+export default class Logger {
     constructor(level, path, debug) {
         this.level = level;
         this.path = path;
@@ -23,7 +19,7 @@ class Logger {
     info(message) {
         let logMessage = `[INFO] [${Date.now()}] ${message}`;
         if (this.level >= 1) {
-            writeLog(this.path, logMessage);
+            this.#writeLog(this.path, logMessage);
         }
         if (this.consoleDebug || this.level >= 1) {
             console.log(logMessage);
@@ -33,7 +29,7 @@ class Logger {
     warn(message) {
         let logMessage = `[WARN] [${Date.now()}] ${message}`;
         if (this.level >= 1) {
-            writeLog(this.path, logMessage);
+            this.#writeLog(this.path, logMessage);
         }
         if (this.consoleDebug || this.level >= 1) {
             console.log(logMessage);
@@ -43,7 +39,7 @@ class Logger {
     error(message) {
         let logMessage = `[ERROR] [${Date.now()}] ${message}`;
         if (this.level >= 1) {
-            writeLog(this.path, logMessage);
+            this.#writeLog(this.path, logMessage);
         }
         if (this.consoleDebug || this.level >= 1) {
             console.log(logMessage);
@@ -53,12 +49,14 @@ class Logger {
     debug(message) {
         let logMessage = `[DEBUG] [${Date.now()}] ${message}`;
         if (this.level >= 2) {
-            writeLog(this.path, logMessage);
+            this.#writeLog(this.path, logMessage);
         }
         if (this.consoleDebug && this.level >= 2) {
             console.log(logMessage);
         }
     }
-}
 
-export default Logger;
+    #writeLog(path, message) {
+        fs.appendFileSync(`${path}whackerlink.log`, `${message}\n`);
+    }
+}
