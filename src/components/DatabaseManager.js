@@ -10,7 +10,7 @@
 import sqlite3 from 'sqlite3';
 import bcrypt from 'bcrypt';
 
-class DatabaseManager {
+export default class DatabaseManager {
 
     /*
      *  @param {string} dbPath - Path to the database file
@@ -79,5 +79,3 @@ class DatabaseManager {
         });
     }
 }
-
-export default DatabaseManager;

@@ -9,12 +9,10 @@
 
 import * as fs from "fs";
 import * as path from 'path';
-import createDebug from 'debug';
 import configLoader from './src/components/ConfigLoader.js';
 import jwt from 'jsonwebtoken';
 import yaml from "js-yaml";
 
-const debug = createDebug('WhackerLink:token_generator');
 const configIndex = process.argv.indexOf('-c');
 
 let configPath = path.join('config', 'config.yaml'); // Default config file

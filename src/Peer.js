@@ -12,7 +12,7 @@ import io from "socket.io-client";
 /**
  * Create peer connection to other WhackerLink applications. The device creating the connection acts as the master
  */
-class Peer {
+export default class Peer {
     constructor(jwt, srcId, dstId, ignoreCommands, endPoint, logger) {
         this.jwt = jwt;
         this.srcId = srcId;
@@ -42,5 +42,3 @@ class Peer {
         }, 5000);
     }
 }
-
-export default Peer
