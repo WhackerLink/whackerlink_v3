@@ -13,24 +13,28 @@ git clone git@github.com:WhackerLink/whackerlink.git
 ```
 
 ## Configure
-Copy `config.example.yml` file to `config.yml` 
-and `rcon_logins.example.json` to `rcon_logins.json`.
+Copy `config/config.example.yml` to `config/config.yml`.
 
-Place the Google json file into the root directory of WhackerLink and rename it to `google.json`. 
+Place the Google json file into the `config/` directory and rename it to `google.json`. 
 In `config.yml`, next to `sheetsID` paste the Google Sheet ID that the rids and channels are listed in.
 The ID should look something like this: `XXXXXXXXXXXXXXXXXXXXXXXXXXXX-XXXXXXXXXXXXXXX`
 You can find it in the URL while viewing your sheet.
 
-Run `node token_generator.js -c config.yml` to generate your JWT used in web-sockets.
+Run `node token_generator.js` to generate your JWT used in web-sockets.
 
 ## Run
 ```sh
-npm i
-node index.js -c config.yml
+npm start
+
+# for debug info
+DEBUG=WhackerLink:* npm start
+
+# To use an alternative config file
+npm start -- -c /path/to/config.yml
 ```
-Go to [`http://localhost:3000`](http://localhost:3000)
+Go to [`https://localhost:3000`](https://localhost:3000)
 
 Visit
-[`/sys_view`](http://localhost:3000/sys_view) and/or
-[`/sys_view/admin`](http://localhost:3000/sys_view/admin) for 
+[`/sys_view`](https://localhost:3000/sys_view) and/or
+[`/sys_view/admin`](https://localhost:3000/sys_view/admin) for
 status information.

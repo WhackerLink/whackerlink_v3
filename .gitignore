@@ -1,9 +1,8 @@
+/config/*
+!/config/*.example.*
+
+/var/
+
 /node_modules/
+
 db/*.db
-*.exe
-config.yml
-config2.yml
-rcon_logins.json
-whackernet-6596e5b32d02.json
-google.json
-*.log
