@@ -27,9 +27,11 @@ if (configIndex > -1) {
 }
 
 const configFilePath = new URL(configPath, import.meta.url);
-const serviceAccountKeyFile = new URL(path.join('config', 'google.json'), import.meta.url);
+ //new URL(path.join('config', 'google.json'), import.meta.url);
 
 const config = configLoader.loadYaml(configFilePath);
+
+const serviceAccountKeyFile = config.paths.sheetsJson;
 
 import express from 'express';
 import session from 'express-session';
@@ -1005,7 +1007,7 @@ io.use((socket, next) => {
 
 async function getGoogleSheetClient() {
     const auth = new google.auth.GoogleAuth({
-        keyFile: serviceAccountKeyFile.pathname,
+        keyFile: serviceAccountKeyFile,
         scopes: ['https://www.googleapis.com/auth/spreadsheets'],
     });
     const authClient = await auth.getClient();
