@@ -2,6 +2,10 @@
 
 [![License](https://img.shields.io/badge/License-GPLv3-blue?style=for-the-badge)](https://www.gnu.org/licenses/gpl-3.0)
 
+# DEPRECATED  DEPRECATED
+
+## This repo is now DEPRECATED. Use: https://github.com/WhackerLink/whackerlink_v4 instead.
+
 ## Requirements:
 ### Google Developer Account and Google Sheets Setup
 You'll need a Google Developer account and a Google Sheets document for channels and RIDs.
